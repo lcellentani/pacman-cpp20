@@ -39,3 +39,29 @@
 
 # debug information files
 *.dwo
+
+# CMake
+build/
+out/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CMakeSettings.json
+
+# Visual Studio 2026
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docview
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# MSVC module cache
+*.ifc
+*.ifcmap
+
+# SDL2 fetched by CMake
+_deps/

@@ -1,0 +1,43 @@
+module;
+#include <SDL.h>
+#include <stdexcept>
+
+module engine.renderer;
+
+Renderer::Renderer(std::string_view title, int width, int height) {
+    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+        throw std::runtime_error(SDL_GetError());
+
+    window_ = SDL_CreateWindow(
+        title.data(),
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        width, height,
+        SDL_WINDOW_SHOWN
+    );
+    if (!window_) throw std::runtime_error(SDL_GetError());
+
+    renderer_ = SDL_CreateRenderer(window_, -1,
+        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (!renderer_) throw std::runtime_error(SDL_GetError());
+}
+
+Renderer::~Renderer() {
+    if (renderer_) SDL_DestroyRenderer(renderer_);
+    if (window_)   SDL_DestroyWindow(window_);
+    SDL_Quit();
+}
+
+void Renderer::clear(Color c) {
+    SDL_SetRenderDrawColor(renderer_, c.r, c.g, c.b, c.a);
+    SDL_RenderClear(renderer_);
+}
+
+void Renderer::draw_rect(Rect r, Color c) {
+    SDL_SetRenderDrawColor(renderer_, c.r, c.g, c.b, c.a);
+    SDL_Rect sdl_rect{ r.x, r.y, r.w, r.h };
+    SDL_RenderFillRect(renderer_, &sdl_rect);
+}
+
+void Renderer::present() {
+    SDL_RenderPresent(renderer_);
+}
