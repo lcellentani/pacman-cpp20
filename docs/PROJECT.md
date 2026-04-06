@@ -179,8 +179,15 @@ engine.input
 
 ```
 pacman/
-├── PROJECT.md          ← you are here
+├── README.md
 ├── CMakeLists.txt
+└── docs/
+    ├── PROJECT.md          ← you are here
+    ├── docs/CODING_STANDARDS.md
+    └── devlog/
+        ├── phaseN-YYYY_MM_DD.md
+        ├── phase-retro-template.md
+        └── session-note-template.md
 └── src/
     ├── main.cpp
     └── engine/
