@@ -23,11 +23,16 @@ target_sources(pacman
         src/main.cpp
         src/engine/renderer.cpp
         src/engine/game.cpp
+        src/game/pacman.cpp
     PRIVATE FILE_SET CXX_MODULES FILES
         src/engine/renderer.ixx
         src/engine/input.ixx
         src/engine/game.ixx
-)
+        src/engine/types.ixx
+        src/game/concepts.ixx
+        src/game/types.ixx
+        src/game/pacman.ixx
+   "src/engine/types.ixx")
 
 target_link_libraries(pacman PRIVATE SDL2::SDL2 SDL2::SDL2main)
 
