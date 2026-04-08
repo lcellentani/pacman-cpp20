@@ -1,4 +1,4 @@
-module engine.game;
+module game.game_manager;
 
 // W = wall, P = pellet, . = empty
 // Phase 1: a simple but recognisable Pac-Man layout
@@ -23,13 +23,13 @@ static constexpr TileMap build_map() {
     return m;
 }
 
-Game::Game()
+GameManager::GameManager()
     : map_(build_map())
     , player_{ TILE_SIZE * 1.5f, TILE_SIZE * 1.5f }
 {
 }
 
-void Game::update(const InputState& input) {
+void GameManager::update(const InputState& input) {
     if (input.quit) { running_ = false; return; }
 
     float dx = 0.f, dy = 0.f;
@@ -51,14 +51,14 @@ void Game::update(const InputState& input) {
     if (tile_at(player_.x, player_.y + dy) != Tile::Wall) player_.y += dy;
 }
 
-void Game::render(Renderer& renderer) {
+void GameManager::render(Renderer& renderer) {
     renderer.clear({ 0, 0, 0 });
     render_map(renderer);
     render_player(renderer);
     renderer.present();
 }
 
-void Game::render_map(Renderer& renderer) {
+void GameManager::render_map(Renderer& renderer) {
     for (int r = 0; r < MAP_ROWS; ++r) {
         for (int c = 0; c < MAP_COLS; ++c) {
             switch (map_[r][c]) {
@@ -80,7 +80,7 @@ void Game::render_map(Renderer& renderer) {
     }
 }
 
-void Game::render_player(Renderer& renderer) {
+void GameManager::render_player(Renderer& renderer) {
     renderer.draw_rect(
         { static_cast<int>(player_.x), static_cast<int>(player_.y),
           TILE_SIZE - 4, TILE_SIZE - 4 },
