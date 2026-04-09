@@ -22,6 +22,11 @@ concept Collidable = requires(T t) {
 	{ t.getBounds() } -> std::same_as<AABB>;
 };
 
+export template<typename T>
+concept Controllable = requires(T t, const InputState& input) {
+	{ t.handleInput(input) } -> std::same_as<void>;
+};
+
 // Composed concept — the full contract for a game entity.
 // Any type entering the variant must satisfy all three.
 export template<typename T>

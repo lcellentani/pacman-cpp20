@@ -4,6 +4,10 @@ void Pacman::draw(Renderer& r) {
 	r.draw_rect({ 100, 100, 32, 32 }, { 255, 255, 0 });
 }
 
+void Pacman::handleInput(const InputState& input) {
+	// Placeholder for input handling logic.
+}
+
 void Pacman::update(float dt, const InputState& input) {
 	// Placeholder for movement logic based on input.
 }

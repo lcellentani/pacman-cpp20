@@ -9,6 +9,8 @@ export class Pacman {
 public:
 	void draw(Renderer& r);
 
+	void handleInput(const InputState& input);
+
 	void update(float dt, const InputState& input);
 
 	AABB getBounds() const;
