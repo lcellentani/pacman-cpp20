@@ -22,17 +22,19 @@ target_sources(pacman
     PRIVATE
         src/main.cpp
         src/engine/renderer.cpp
-        src/game/stage.cpp
+        src/game/map.cpp
         src/game/pacman.cpp
+        src/game/stage.cpp
     PRIVATE FILE_SET CXX_MODULES FILES
         src/engine/renderer.ixx
         src/engine/input.ixx
         src/engine/types.ixx
         src/game/concepts.ixx
-        src/game/stage.ixx
+        src/game/map.ixx
         src/game/pacman.ixx
+        src/game/stage.ixx
         src/game/types.ixx
-)
+ )
 
 target_link_libraries(pacman PRIVATE SDL2::SDL2 SDL2::SDL2main)
 

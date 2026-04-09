@@ -13,8 +13,8 @@ concept Drawable = requires(T t, Renderer& r) {
 };
 
 export template<typename T>
-concept Updatable = requires(T t, float dt, const InputState& input) {
-	{ t.update(dt, input) } -> std::same_as<void>;
+concept Updatable = requires(T t, float dt) {
+	{ t.update(dt) } -> std::same_as<void>;
 };
 
 export template<typename T>
