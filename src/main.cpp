@@ -1,16 +1,16 @@
 
 import engine.renderer;
 import engine.input;
-import game.game_manager;
+import game.stage;
 
 int main() {
     Renderer renderer{ "Pac-Man", 672, 672 };  // 21 * 32
-    GameManager game{};
+    Stage stage{};
 
-    while (game.is_running()) {
+    while (stage.is_running()) {
         const auto input = poll_input();
-        game.update(input);
-        game.render(renderer);
+        stage.update(input);
+        stage.render(renderer);
     }
 
     return 0;

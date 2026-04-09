@@ -2,7 +2,7 @@ module;
 #include <array>
 #include <cstdint>
 
-export module game.game_manager;
+export module game.stage;
 
 import engine.renderer;
 import engine.input;
@@ -26,9 +26,9 @@ export struct Player {
     float speed = 4.f;
 };
 
-export class GameManager {
+export class Stage {
 public:
-    GameManager();
+    Stage();
 
     void update(const InputState& input);
     void render(Renderer& renderer);

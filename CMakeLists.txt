@@ -22,14 +22,14 @@ target_sources(pacman
     PRIVATE
         src/main.cpp
         src/engine/renderer.cpp
-        src/game/game.cpp
+        src/game/stage.cpp
         src/game/pacman.cpp
     PRIVATE FILE_SET CXX_MODULES FILES
         src/engine/renderer.ixx
         src/engine/input.ixx
         src/engine/types.ixx
         src/game/concepts.ixx
-        src/game/game.ixx
+        src/game/stage.ixx
         src/game/pacman.ixx
         src/game/types.ixx
 )
