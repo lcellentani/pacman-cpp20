@@ -1,6 +1,4 @@
 module;
-#include <variant>
-#include <vector>
 
 export module game.stage;
 
@@ -9,8 +7,6 @@ import engine.input;
 import game.concepts;
 import game.map;
 import game.pacman;
-
-using DrawableObject = std::variant<Pacman, Map>;
 
 export class Stage {
 public:
@@ -25,8 +21,6 @@ public:
 private:
     Map map_;
 	Pacman pacman_entity_;
-
-    std::vector<DrawableObject> drawableObjects_;
 
     bool running_ = false;
 };

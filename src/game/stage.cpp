@@ -1,12 +1,5 @@
-module;
-#include <variant>
-#include <vector>
 
 module game.stage;
-
-// Overload helper — lets us compose lambdas into a visitor.
-template<typename... Ts>
-struct overloaded : Ts... { using Ts::operator()...; };
 
 Stage::Stage()
 	: map_(), pacman_entity_(map_) {
@@ -15,10 +8,6 @@ Stage::Stage()
 void Stage::reset() {
 	map_.reset();
 	pacman_entity_.reset();
-
-	drawableObjects_.clear();
-	drawableObjects_.emplace_back(pacman_entity_);
-	drawableObjects_.emplace_back(map_);
 
     running_ = true;
 }
@@ -36,12 +25,8 @@ void Stage::update(const InputState& input) {
 void Stage::render(Renderer& renderer) {
     renderer.clear({ 0, 0, 0 });
 
-	for (auto& obj : drawableObjects_) {
-		std::visit(overloaded{
-			[&renderer](Drawable auto& o) { o.draw(renderer); },
-			[](auto&) {}
-			}, obj);
-	}
+	map_.draw(renderer);
+	pacman_entity_.draw(renderer);
 
     renderer.present();
 }
