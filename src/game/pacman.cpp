@@ -1,7 +1,6 @@
 module game.pacman;
 
-Pacman::Pacman(const Map& map)
-	: map_(map),
+Pacman::Pacman() :
 	x_(0.f), y_(0.f),
 	dx_(0.f), dy_(0.f) {
 	// Initial position will be set in reset().
@@ -31,11 +30,14 @@ void Pacman::handleInput(const InputState& input) {
 	if (input.right) dx_ += speed_;
 }
 
+void Pacman::resolveWorldCollisions(const Map& map) {
+	if (map.is_wall(x_ + dx_, y_)) dx_ = 0.f;
+	if (map.is_wall(x_, y_ + dy_)) dy_ = 0.f;
+}
+
 void Pacman::update(float dt) {
-	if (map_.tile_at(x_ + dx_, y_) != Tile::Wall)
-		x_ += dx_;
-	if (map_.tile_at(x_, y_ + dy_) != Tile::Wall)
-		y_ += dy_;
+	x_ += dx_ * dt;
+	y_ += dy_ * dt;
 }
 
 AABB Pacman::getBounds() const {

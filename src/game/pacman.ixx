@@ -8,7 +8,7 @@ import game.map;
 
 export class Pacman {
 public:
-	Pacman(const Map& map);
+	Pacman();
 
 	void reset();
 
@@ -16,13 +16,13 @@ public:
 
 	void handleInput(const InputState& input);
 
+	void resolveWorldCollisions(const Map& map);
+
 	void update(float dt);
 
 	AABB getBounds() const;
 
 private:
-	const Map& map_;
-
 	float x_, y_; // world position in pixels
 
 	float dx_, dy_; // current velocity in pixels per second

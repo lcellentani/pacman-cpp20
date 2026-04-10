@@ -26,6 +26,8 @@ public:
 
     Tile tile_at(float px, float py) const;
 
+    bool is_wall(float px, float py) const;
+
 	void draw(Renderer& renderer) const;
 
 private:
