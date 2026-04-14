@@ -1,6 +1,9 @@
 module;
 #include <SDL.h>
 #include <stdexcept>
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_sdlrenderer2.h"
 
 module engine.renderer;
 
@@ -19,9 +22,18 @@ Renderer::Renderer(std::string_view title, int width, int height) {
     renderer_ = SDL_CreateRenderer(window_, -1,
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!renderer_) throw std::runtime_error(SDL_GetError());
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui_ImplSDL2_InitForSDLRenderer(window_, renderer_);
+    ImGui_ImplSDLRenderer2_Init(renderer_);
 }
 
 Renderer::~Renderer() {
+    ImGui_ImplSDLRenderer2_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+
     if (renderer_) SDL_DestroyRenderer(renderer_);
     if (window_)   SDL_DestroyWindow(window_);
     SDL_Quit();
@@ -40,4 +52,15 @@ void Renderer::draw_rect(Rect r, Color c) {
 
 void Renderer::present() {
     SDL_RenderPresent(renderer_);
+}
+
+void Renderer::imgui_new_frame() {
+    ImGui_ImplSDLRenderer2_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+}
+
+void Renderer::imgui_render() {
+    ImGui::Render();
+    ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer_);
 }

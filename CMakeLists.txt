@@ -16,11 +16,39 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(SDL2)
 
+FetchContent_Declare(
+    imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG        v1.91.9b
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(imgui)
+
+add_library(imgui STATIC
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer2.cpp
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+)
+
+target_include_directories(imgui PUBLIC
+    ${imgui_SOURCE_DIR}
+    ${imgui_SOURCE_DIR}/backends
+)
+
+target_link_libraries(imgui PUBLIC SDL2::SDL2)
+set_target_properties(imgui PROPERTIES CXX_SCAN_FOR_MODULES OFF)
+
+# Pacman executable
 add_executable(pacman)
 
 target_sources(pacman
     PRIVATE
         src/main.cpp
+        src/engine/input.cpp
         src/engine/renderer.cpp
         src/game/map.cpp
         src/game/pacman.cpp
@@ -36,7 +64,7 @@ target_sources(pacman
         src/game/types.ixx
  )
 
-target_link_libraries(pacman PRIVATE SDL2::SDL2 SDL2::SDL2main)
+target_link_libraries(pacman PRIVATE SDL2::SDL2 SDL2::SDL2main imgui)
 
 # MSVC: disable legacy header units, enable standard conformance
 target_compile_options(pacman PRIVATE /W4 /permissive- /EHsc)

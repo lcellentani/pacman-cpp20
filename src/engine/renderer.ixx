@@ -29,6 +29,9 @@ public:
 
     [[nodiscard]] bool is_valid() const { return window_ && renderer_; }
 
+    void imgui_new_frame();
+    void imgui_render();
+
 private:
     SDL_Window* window_ = nullptr;
     SDL_Renderer* renderer_ = nullptr;
