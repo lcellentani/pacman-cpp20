@@ -13,13 +13,13 @@ void Pacman::reset() {
 }
 
 void Pacman::draw(Renderer& renderer) {
+	const auto b = getBounds();
 	renderer.draw_rect(
-		{ static_cast<int>(x_) + 2, static_cast<int>(y_) + 2,
-		  TILE_SIZE - 4, TILE_SIZE - 4 },
-		{ 255, 255, 0 }   // Pac-Man yellow
+		{ static_cast<int>(b.x), static_cast<int>(b.y),
+		  static_cast<int>(b.width), static_cast<int>(b.height) },
+		{ 255, 255, 0 }
 	);
 }
-
 void Pacman::handleInput(const InputState& input) {
 	dx_ = 0.f;
 	dy_ = 0.f;
@@ -41,9 +41,9 @@ void Pacman::update(float dt) {
 }
 
 AABB Pacman::getBounds() const {
-	// TODO: fix bounds calculation in phase 3
-	return { x_, y_, static_cast<float>(TILE_SIZE - 4),
-					 static_cast<float>(TILE_SIZE - 4) };
+	constexpr float margin = 2.f;
+	return { x_ + margin, y_ + margin,
+			 TILE_SIZE - margin * 2, TILE_SIZE - margin * 2 };
 }
 
 PacmanDebugState Pacman::debug_state() const {
