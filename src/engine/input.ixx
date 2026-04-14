@@ -1,6 +1,3 @@
-module;
-#include <SDL.h>
-
 export module engine.input;
 
 // Minimal input snapshot — polled once per frame

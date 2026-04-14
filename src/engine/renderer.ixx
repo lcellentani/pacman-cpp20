@@ -1,7 +1,6 @@
 module;
 #include <SDL.h>
 #include <cstdint>
-#include <span>
 #include <string_view>
 
 export module engine.renderer;
