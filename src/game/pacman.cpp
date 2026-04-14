@@ -8,13 +8,13 @@ Pacman::Pacman() :
 
 void Pacman::reset() {
 	// Placeholder for reset logic (e.g., position, state).
-	x_ = TILE_SIZE * 1.5f;
-	y_ = TILE_SIZE * 1.5f;
+	x_ = 12 * TILE_SIZE;
+	y_ = 23 * TILE_SIZE;
 }
 
 void Pacman::draw(Renderer& renderer) {
 	renderer.draw_rect(
-		{ static_cast<int>(x_), static_cast<int>(y_),
+		{ static_cast<int>(x_) + 2, static_cast<int>(y_) + 2,
 		  TILE_SIZE - 4, TILE_SIZE - 4 },
 		{ 255, 255, 0 }   // Pac-Man yellow
 	);
@@ -41,6 +41,7 @@ void Pacman::update(float dt) {
 }
 
 AABB Pacman::getBounds() const {
+	// TODO: fix bounds calculation in phase 3
 	return { x_, y_, static_cast<float>(TILE_SIZE - 4),
 					 static_cast<float>(TILE_SIZE - 4) };
 }

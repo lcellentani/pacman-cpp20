@@ -5,6 +5,7 @@ module;
 export module game.map;
 
 import engine.renderer;
+import game.types;
 
 // Tile types
 export enum class Tile : uint8_t {
@@ -12,11 +13,6 @@ export enum class Tile : uint8_t {
     Wall = 1,
     Pellet = 2,
 };
-
-// Classic Pac-Man map: 21 cols × 21 rows (simplified for Phase 1)
-export constexpr int MAP_COLS = 21;
-export constexpr int MAP_ROWS = 21;
-export constexpr int TILE_SIZE = 32;
 
 export class Map {
 public:
@@ -32,6 +28,13 @@ public:
 	void draw(Renderer& renderer) const;
 
 private:
-    using TileMap = std::array<std::array<Tile, MAP_COLS>, MAP_ROWS>;
-	TileMap map_;
+    // Flat storage — index with at(row, col)
+    std::array<Tile, MAP_ROWS* MAP_COLS> map_;
+
+    [[nodiscard]] Tile& at(int row, int col) {
+        return map_[row * MAP_COLS + col];
+    }
+    [[nodiscard]] Tile at(int row, int col) const {
+        return map_[row * MAP_COLS + col];
+    }
 };
