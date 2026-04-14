@@ -5,6 +5,7 @@ export module game.stage;
 import engine.renderer;
 import engine.input;
 import game.concepts;
+import game.debug;
 import game.map;
 import game.pacman;
 
@@ -23,4 +24,7 @@ private:
 	Pacman pacman_entity_;
 
     bool running_ = false;
+
+    DebugView debug_;
+    bool prev_debug_key_ = false;
 };

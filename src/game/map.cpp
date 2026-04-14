@@ -36,6 +36,12 @@ Tile Map::tile_at(float px, float py) const {
     return map_[row][col];
 }
 
+Tile Map::tile_at_index(int row, int col) const {
+    if (row < 0 || row >= MAP_ROWS || col < 0 || col >= MAP_COLS)
+        return Tile::Wall;
+    return map_[row][col];
+}
+
 bool Map::is_wall(float px, float py) const {
     return tile_at(px, py) == Tile::Wall;
 }

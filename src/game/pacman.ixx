@@ -5,6 +5,7 @@ import engine.renderer;
 import engine.types;
 import game.concepts;
 import game.map;
+import game.types;
 
 export class Pacman {
 public:
@@ -21,6 +22,8 @@ public:
 	void update(float dt);
 
 	AABB getBounds() const;
+
+	[[nodiscard]] PacmanDebugState debug_state() const;
 
 private:
 	float x_, y_; // world position in pixels

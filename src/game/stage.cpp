@@ -1,5 +1,5 @@
 module;
-#include "imgui.h"
+//#include "imgui.h"
 
 module game.stage;
 
@@ -19,6 +19,11 @@ void Stage::update(const InputState& input) {
 
     if (input.quit) { running_ = false; return; }
 
+	// Edge detection — toggle only on keydown, not keyhold
+	if (input.debug_toggle && !prev_debug_key_)
+		debug_.toggle();
+	prev_debug_key_ = input.debug_toggle;
+
 	pacman_entity_.handleInput(input);
 
 	pacman_entity_.resolveWorldCollisions(map_);
@@ -29,12 +34,14 @@ void Stage::update(const InputState& input) {
 void Stage::render(Renderer& renderer) {
 	renderer.imgui_new_frame(); // ImGui frame starts
 
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 
     renderer.clear({ 0, 0, 0 });
 
 	map_.draw(renderer);
 	pacman_entity_.draw(renderer);
+
+	debug_.draw(map_, pacman_entity_.debug_state());
 
 	renderer.imgui_render(); // ImGui flushes
 

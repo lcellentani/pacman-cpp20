@@ -7,6 +7,7 @@ export struct InputState {
     bool down = false;
     bool left = false;
     bool right = false;
+    bool debug_toggle = false;   // D key
 };
 
 export InputState poll_input();

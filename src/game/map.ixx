@@ -25,6 +25,7 @@ public:
     void reset();
 
     Tile tile_at(float px, float py) const;
+    [[nodiscard]] Tile tile_at_index(int row, int col) const;
 
     bool is_wall(float px, float py) const;
 

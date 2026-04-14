@@ -41,5 +41,10 @@ void Pacman::update(float dt) {
 }
 
 AABB Pacman::getBounds() const {
-	return { 100, 100, 32, 32 }; // Placeholder bounds for collision detection.
+	return { x_, y_, static_cast<float>(TILE_SIZE - 4),
+					 static_cast<float>(TILE_SIZE - 4) };
+}
+
+PacmanDebugState Pacman::debug_state() const {
+	return { x_, y_, dx_, dy_, speed_, getBounds() };
 }

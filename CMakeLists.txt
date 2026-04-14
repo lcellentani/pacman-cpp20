@@ -31,7 +31,7 @@ add_library(imgui STATIC
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer2.cpp
-    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+#    ${imgui_SOURCE_DIR}/imgui_demo.cpp
 )
 
 target_include_directories(imgui PUBLIC
@@ -50,6 +50,7 @@ target_sources(pacman
         src/main.cpp
         src/engine/input.cpp
         src/engine/renderer.cpp
+        src/game/debug.cpp
         src/game/map.cpp
         src/game/pacman.cpp
         src/game/stage.cpp
@@ -58,6 +59,7 @@ target_sources(pacman
         src/engine/input.ixx
         src/engine/types.ixx
         src/game/concepts.ixx
+        src/game/debug.ixx
         src/game/map.ixx
         src/game/pacman.ixx
         src/game/stage.ixx
