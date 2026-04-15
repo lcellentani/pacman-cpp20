@@ -9,7 +9,7 @@ import game.types;
 
 export class Pacman {
 public:
-	Pacman();
+	Pacman(const Map& map);
 
 	void reset();
 
@@ -26,10 +26,19 @@ public:
 	[[nodiscard]] PacmanDebugState debug_state() const;
 
 private:
-	float x_, y_; // world position in pixels
+	Vec2 pos_{ 0.0f, 0.0f }; // current position in pixels
+
+	Vec2 current_dir_{ 0.0f, 0.0f }; // current movement direction (normalized)
+	Vec2 queued_dir_{ 0.0f, 0.0f }; // queued movement direction (normalized)
 
 	float dx_, dy_; // current velocity in pixels per second
-	float speed_ = 4.f;
+
+	float accumulator_ = 0.f; // accumulator for movement timing
+	float speed_ = 0.0f;
+
+	const Map& map_;
+
+	bool is_wall(Vec2 pos, Vec2 dir) const;
 };
 
 static_assert(GameEntity<Pacman>, "Pacman must satisfy GameEntity");

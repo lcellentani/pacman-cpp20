@@ -16,7 +16,7 @@ public:
 
 private:
     void draw_pacman_section(const PacmanDebugState& pacman);
-    void draw_map_section(const Map& map);
+    void draw_map_section(const Map& map, const PacmanDebugState& pacman);
 
     bool visible_ = false;
 };

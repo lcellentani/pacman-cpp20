@@ -12,7 +12,7 @@ void DebugView::draw(const Map& map, const PacmanDebugState& pacman) {
     ImGui::Begin("Debug");
     draw_pacman_section(pacman);
     ImGui::Separator();
-    draw_map_section(map);
+    draw_map_section(map, pacman);
     ImGui::End();
 }
 
@@ -29,7 +29,7 @@ void DebugView::draw_pacman_section(const PacmanDebugState& pacman) {
         pacman.bounds.width, pacman.bounds.height);
 }
 
-void DebugView::draw_map_section(const Map& map) {
+void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman) {
     if (!ImGui::CollapsingHeader("Map", ImGuiTreeNodeFlags_DefaultOpen))
         return;
 
@@ -58,6 +58,19 @@ void DebugView::draw_map_section(const Map& map) {
             ImVec2 br{ tl.x + MINI_TILE, tl.y + MINI_TILE };
             draw_list->AddRectFilled(tl, br, color);
         }
+    }
+
+    {
+        constexpr float SCALE = (MINI_TILE + PADDING) / static_cast<float>(TILE_SIZE);
+        ImVec2 tl{
+            origin.x + pacman.bounds.x * SCALE,
+            origin.y + pacman.bounds.y * SCALE
+        };
+        ImVec2 br{
+            origin.x + (pacman.bounds.x + pacman.bounds.width)  * SCALE,
+            origin.y + (pacman.bounds.y + pacman.bounds.height) * SCALE
+        };
+        draw_list->AddRect(tl, br, IM_COL32(255, 0, 0, 255));
     }
 
     // Advance cursor past the mini-map so ImGui layout continues correctly

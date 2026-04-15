@@ -4,7 +4,7 @@ module;
 module game.stage;
 
 Stage::Stage()
-	: map_(), pacman_entity_() {
+	: map_(), pacman_entity_(map_) {
 }
 
 void Stage::reset() {
@@ -26,9 +26,9 @@ void Stage::update(const InputState& input) {
 
 	pacman_entity_.handleInput(input);
 
-	pacman_entity_.resolveWorldCollisions(map_);
+	//pacman_entity_.resolveWorldCollisions(map_);
 
-	pacman_entity_.update(1.f);
+	pacman_entity_.update(0.016f);
 }
 
 void Stage::render(Renderer& renderer) {
