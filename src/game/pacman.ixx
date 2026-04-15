@@ -9,9 +9,9 @@ import game.types;
 
 export class Pacman {
 public:
-	Pacman(const Map& map);
+	Pacman() = default;
 
-	void reset();
+	void reset(const Map* map);
 
 	void draw(Renderer& renderer);
 
@@ -34,11 +34,12 @@ private:
 	float accumulator_ = 0.f; // accumulator for movement timing
 	float speed_ = 0.0f;
 
-	const Map& map_;
+	const Map* map_ = nullptr; // pointer, rebindable, nullable
 
 	int pixel_x() const;
 	int pixel_y() const;
 
+	bool is_opposite(const Dir& a, const Dir& b) const;
 	bool can_move(int col, int row, Dir dir) const;
 };
 

@@ -4,12 +4,12 @@ module;
 module game.stage;
 
 Stage::Stage()
-	: map_(), pacman_entity_(map_) {
+	: map_(), pacman_entity_() {
 }
 
 void Stage::reset() {
 	map_.reset();
-	pacman_entity_.reset();
+	pacman_entity_.reset(&map_);
 
     running_ = true;
 }

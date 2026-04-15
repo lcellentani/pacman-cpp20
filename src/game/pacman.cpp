@@ -1,13 +1,12 @@
 module;
+#include <cassert>
 #include <cmath>
 
 module game.pacman;
 
-Pacman::Pacman(const Map& map) : map_(map) {
-	// Initial position will be set in reset().
-}
+void Pacman::reset(const Map* map) {
+	map_ = map;
 
-void Pacman::reset() {
 	col_ = 12;
 	row_ = 23;
 	offset_ = 0;
@@ -44,6 +43,15 @@ void Pacman::handleInput(const InputState& input) {
 
 void Pacman::update(float dt) {
 	accumulator_ += speed_ * dt;
+
+	// If player wants to go exactly opposite, don't wait for the tile center.
+	if (is_opposite(queued_dir_, current_dir_)) {
+		col_ += current_dir_.x;   // step into the tile we were heading toward
+		row_ += current_dir_.y;
+		current_dir_ = queued_dir_;
+		offset_ = TILE_SIZE - offset_;
+	}
+
 	while (accumulator_ >= 1.0f) {
 		accumulator_ -= 1.0f;
 
@@ -57,6 +65,9 @@ void Pacman::update(float dt) {
 				break;
 			}
 		}
+
+		if (current_dir_.x == 0 && current_dir_.y == 0)
+			break;  // no direction — don't advance offset
 
 		// Advance one pixel in the current direction
 		offset_ += 1;
@@ -87,6 +98,12 @@ int Pacman::pixel_y() const {
 	return row_ * TILE_SIZE + offset_ * current_dir_.y;
 }
 
+bool Pacman::is_opposite(const Dir& a, const Dir& b) const {
+	if (a.x == 0 && a.y == 0) return false; // no direction is not opposite to anything
+	return (a.x == -b.x && a.y == 0) || (a.y == -b.y && a.x == 0);
+}
+
 bool Pacman::can_move(int col, int row, Dir dir) const {
-	return !map_.is_wall_at(col + dir.x, row + dir.y);
+	assert(map_ && "can_move called before reset()");
+	return !map_->is_wall_at(col + dir.x, row + dir.y);
 }
