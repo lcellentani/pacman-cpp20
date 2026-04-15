@@ -20,8 +20,8 @@ void DebugView::draw_pacman_section(const PacmanDebugState& pacman) {
     if (!ImGui::CollapsingHeader("Pac-Man", ImGuiTreeNodeFlags_DefaultOpen))
         return;
 
-    ImGui::Text("pos    %.1f, %.1f", pacman.x, pacman.y);
-    ImGui::Text("vel    %.1f, %.1f", pacman.dx, pacman.dy);
+    ImGui::Text("pos    %.d, %.d", pacman.col, pacman.row);
+    ImGui::Text("vel    %.d, %.d", pacman.dir_x, pacman.dir_y);
     ImGui::Text("speed  %.1f", pacman.speed);
     ImGui::Spacing();
     ImGui::Text("AABB   x=%.1f y=%.1f w=%.1f h=%.1f",

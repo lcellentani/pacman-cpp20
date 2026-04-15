@@ -17,8 +17,6 @@ public:
 
 	void handleInput(const InputState& input);
 
-	void resolveWorldCollisions(const Map& map);
-
 	void update(float dt);
 
 	AABB getBounds() const;
@@ -26,19 +24,22 @@ public:
 	[[nodiscard]] PacmanDebugState debug_state() const;
 
 private:
-	Vec2 pos_{ 0.0f, 0.0f }; // current position in pixels
+	int col_ = 0; // current tile column
+	int row_ = 0; // current tile row
+	int offset_ = 0; // pixel offset from tile center (0 to TILE_SIZE/2)
 
-	Vec2 current_dir_{ 0.0f, 0.0f }; // current movement direction (normalized)
-	Vec2 queued_dir_{ 0.0f, 0.0f }; // queued movement direction (normalized)
+	Dir current_dir_{ 0, 0 }; // current movement direction (normalized)
+	Dir queued_dir_{ 0, 0 }; // queued movement direction (normalized)
 
 	float accumulator_ = 0.f; // accumulator for movement timing
 	float speed_ = 0.0f;
 
 	const Map& map_;
 
-	bool is_wall(Vec2 pos, Vec2 dir) const;
-	bool is_at_tile_center(Vec2 pos) const;
-	bool can_move(Vec2 pos, Vec2 dir) const;
+	int pixel_x() const { return col_ * TILE_SIZE + offset_ * current_dir_.x; }
+	int pixel_y() const { return row_ * TILE_SIZE + offset_ * current_dir_.y; }
+
+	bool can_move(int col, int row, Dir dir) const;
 };
 
 static_assert(GameEntity<Pacman>, "Pacman must satisfy GameEntity");

@@ -11,8 +11,10 @@ export constexpr int WINDOW_H = MAP_ROWS * TILE_SIZE;   // 744
 export constexpr int DEBUG_PANEL_W = 380;
 
 export struct PacmanDebugState {
-    float x, y;
-    float dx, dy;
+    int col, row;
+    int dir_x, dir_y;
     float speed;
     AABB  bounds;
 };
+
+export struct Dir { int x, y; }; // values always in {-1, 0, 1}
