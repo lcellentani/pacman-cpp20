@@ -36,8 +36,8 @@ private:
 
 	const Map& map_;
 
-	int pixel_x() const { return col_ * TILE_SIZE + offset_ * current_dir_.x; }
-	int pixel_y() const { return row_ * TILE_SIZE + offset_ * current_dir_.y; }
+	int pixel_x() const;
+	int pixel_y() const;
 
 	bool can_move(int col, int row, Dir dir) const;
 };

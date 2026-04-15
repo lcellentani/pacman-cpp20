@@ -24,7 +24,7 @@ public:
     [[nodiscard]] Tile tile_at_index(int row, int col) const;
 
     bool is_wall(float px, float py) const;
-	bool is_wall_at(int row, int col) const;
+	bool is_wall_at(int col, int row) const;
 
 	void draw(Renderer& renderer) const;
 

@@ -79,6 +79,14 @@ PacmanDebugState Pacman::debug_state() const {
 	return { col_, row_, current_dir_.x, current_dir_.y, speed_, getBounds()};
 }
 
+int Pacman::pixel_x() const {
+	return col_ * TILE_SIZE + offset_ * current_dir_.x;
+}
+
+int Pacman::pixel_y() const {
+	return row_ * TILE_SIZE + offset_ * current_dir_.y;
+}
+
 bool Pacman::can_move(int col, int row, Dir dir) const {
-	return !map_.is_wall_at(row + dir.y, col + dir.x);
+	return !map_.is_wall_at(col + dir.x, row + dir.y);
 }

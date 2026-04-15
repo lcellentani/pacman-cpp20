@@ -84,7 +84,7 @@ bool Map::is_wall(float px, float py) const {
     return tile_at(px, py) == Tile::Wall;
 }
 
-bool Map::is_wall_at(int row, int col) const {
+bool Map::is_wall_at(int col, int row) const {
     return tile_at_index(row, col) == Tile::Wall;
 }
 
