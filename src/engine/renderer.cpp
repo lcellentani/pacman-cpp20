@@ -51,6 +51,19 @@ void Renderer::draw_rect(Rect r, Color c) {
     SDL_RenderFillRect(renderer_, &sdl_rect);
 }
 
+void Renderer::draw_circle(int cx, int cy, int radius, Color c) {
+    SDL_SetRenderDrawColor(renderer_, c.r, c.g, c.b, c.a);
+    for (int w = 0; w < radius * 2; w++) {
+        for (int h = 0; h < radius * 2; h++) {
+            int dx = radius - w; // horizontal offset
+            int dy = radius - h; // vertical offset
+            if ((dx*dx + dy*dy) <= (radius * radius)) {
+                SDL_RenderDrawPoint(renderer_, cx + dx, cy + dy);
+            }
+        }
+	}
+}
+
 void Renderer::present() {
     SDL_RenderPresent(renderer_);
 }

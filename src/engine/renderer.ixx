@@ -24,6 +24,7 @@ public:
 
     void clear(Color c);
     void draw_rect(Rect r, Color c);
+	void draw_circle(int cx, int cy, int radius, Color c);
     void present();
 
     [[nodiscard]] bool is_valid() const { return window_ && renderer_; }

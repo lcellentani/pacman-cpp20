@@ -4,10 +4,10 @@ module;
 
 module game.pacman;
 
-void Pacman::reset(const Map* map) {
+void Pacman::reset(Map* map) {
 	map_ = map;
 
-	col_ = 12;
+	col_ = 13;
 	row_ = 23;
 	offset_ = 0;
 
@@ -59,6 +59,8 @@ void Pacman::update(float dt) {
 			// At a tile center — this is the only moment decisions are made
 			if (can_move(col_, row_, queued_dir_)) {
 				current_dir_ = queued_dir_;
+
+				map_->collect_pellet_at(col_, row_); // Collect pellet if present
 			}
 			if (!can_move(col_, row_, current_dir_)) {
 				current_dir_ = { 0, 0 }; // Hit a wall, stop movement

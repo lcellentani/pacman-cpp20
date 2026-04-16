@@ -12,6 +12,7 @@ export enum class Tile : uint8_t {
     Empty = 0,
     Wall = 1,
     Pellet = 2,
+	SuperPellet = 3,
 };
 
 export class Map {
@@ -25,6 +26,8 @@ public:
 
     bool is_wall(float px, float py) const;
 	bool is_wall_at(int col, int row) const;
+
+	bool collect_pellet_at(int col, int row);
 
 	void draw(Renderer& renderer) const;
 

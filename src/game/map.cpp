@@ -17,37 +17,37 @@ module game.map;
 //   - Rows 13–15 form the ghost house corridor.
 //
 static constexpr std::array<std::string_view, MAP_ROWS> k_layout = { {
-    "WWWWWWWWWWWWWWWWWWWWWWWWW",  // row  0  — top border
-    "W...........W...........W",  // row  1
-    "W.WWWW.WWWW.W.WWWW.WWWW.W",  // row  2
-    "W.WWWW.WWWW.W.WWWW.WWWW.W",  // row  3
-    "W.WWWW.WWWW.W.WWWW.WWWW.W",  // row  4
-    "W.......................W",  // row  5
-    "W.WWWW.W.WWWWWWW.W.WWWW.W",  // row  6
-    "W.WWWW.W.WWWWWWW.W.WWWW.W",  // row  7
-    "W......W....W....W......W",  // row  8
-    "WWWWWW.WWWW.W.WWWW.WWWWWW",  // row  9
-    ".....W.WWWW.W.WWWW.W.....",  // row 10
-    ".....W.W.........W.W.....",  // row 11
-    ".....W.W.WWWWWWW.W.W.....",  // row 12
-    "WWWWWW.W.W.....W.W.WWWWWW",  // row 13  — ghost house top corridor
-    ".........W.....W.........",  // row 14  — tunnel row (open ends)
-    "WWWWWW.W.W.....W.W.WWWWWW",  // row 15  — ghost house bottom corridor
-    ".....W.W.WWWWWWW.W.W.....",  // row 16
-    ".....W.W.........W.W.....",  // row 17
-    ".....W.W.WWWWWWW.W.W.....",  // row 18
-    "WWWWWW.W.WWWWWWW.W.WWWWWW",  // row 19
-    "W...........W...........W",  // row 20
-    "W.WWWW.WWWW.W.WWWW.WWWW.W",  // row 21
-    "W.WWWW.WWWW.W.WWWW.WWWW.W",  // row 22
-    "W...WW.............WW...W",  // row 23  — Pac-Man start area
-    "WWW.WW.W.WWWWWWW.W.WW.WWW",  // row 24
-    "WWW.WW.W.WWWWWWW.W.WW.WWW",  // row 25
-    "W......W....W....W......W",  // row 26
-    "W.WWWW.W.WWWWWWW.W.WWWW.W",  // row 27
-    "W.WWWW.W.WWWWWWW.W.WWWW.W",  // row 28
-    "W.......................W",  // row 29
-    "WWWWWWWWWWWWWWWWWWWWWWWWW",  // row 30  — bottom border
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWW",  // row  0  — top border
+    "W............WW............W",  // row  1
+    "W.WWWW.WWWWW.WW.WWWWW.WWWW.W",  // row  2
+    "WSWWWW.WWWWW.WW.WWWWW.WWWWSW",  // row  3
+    "W.WWWW.WWWWW.WW.WWWWW.WWWW.W",  // row  4
+    "W..........................W",  // row  5
+    "W.WWWW.WW.WWWWWWWW.WW.WWWW.W",  // row  6
+    "W.WWWW.WW.WWWWWWWW.WW.WWWW.W",  // row  7
+    "W......WW....WW....WW......W",  // row  8
+    "WWWWWW.WWWWW.WW.WWWWW.WWWWWW",  // row  9
+    "WWWWWW.WWWWW.WW.WWWWW.WWWWWW",  // row 10
+    "WWWWWW.WW..........WW.WWWWWW",  // row 11
+    "WWWWWW.WW.WWWWWWWW.WW.WWWWWW",  // row 12
+    "WWWWWW.WW.WGGGGGGW.WW.WWWWWW",  // row 13  — ghost house top corridor
+    ".......WW.WGGGGGGW.WW.......",  // row 14  — tunnel row (open ends)
+    "WWWWWW.WW.WGGGGGGW.WW.WWWWWW",  // row 15  — ghost house bottom corridor
+    "WWWWWW.WW.WWWWWWWW.WW.WWWWWW",  // row 16
+    "WWWWWW.WW..........WW.WWWWWW",  // row 17
+    "WWWWWW.WW.WWWWWWWW.WW.WWWWWW",  // row 18
+    "WWWWWW.WW.WWWWWWWW.WW.WWWWWW",  // row 19
+    "W............WW............W",  // row 20
+    "W.WWWW.WWWWW.WW.WWWWW.WWWW.W",  // row 21
+    "W.WWWW.WWWWW.WW.WWWWW.WWWW.W",  // row 22
+    "WS..WW................WW..SW",  // row 23  — Pac-Man start area
+    "WWW.WW.WW.WWWWWWWW.WW.WW.WWW",  // row 24
+    "WWW.WW.WW.WWWWWWWW.WW.WW.WWW",  // row 25
+    "W......WW....WW....WW......W",  // row 26
+    "W.WWWW.WW.WWWWWWWW.WW.WWWW.W",  // row 27
+    "W.WWWW.WW.WWWWWWWW.WW.WWWW.W",  // row 28
+    "W..........................W",  // row 29
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWW",  // row 30  — bottom border
 } };
 
 Map::Map() {
@@ -60,6 +60,8 @@ void Map::reset() {
         for (int c = 0; c < MAP_COLS; ++c) {
             switch (k_layout[r][c]) {
             case 'W': at(r, c) = Tile::Wall;  break;
+            case '.': at(r, c) = Tile::Pellet; break;
+			case 'S': at(r, c) = Tile::SuperPellet; break;
             default:  at(r, c) = Tile::Empty; break;
             }
         }
@@ -88,6 +90,18 @@ bool Map::is_wall_at(int col, int row) const {
     return tile_at_index(row, col) == Tile::Wall;
 }
 
+bool Map::collect_pellet_at(int col, int row) {
+    if (tile_at_index(row, col) == Tile::Pellet) {
+        at(row, col) = Tile::Empty;
+        return true;
+    }
+    if (tile_at_index(row, col) == Tile::SuperPellet) {
+        at(row, col) = Tile::Empty;
+        return true;
+    }
+	return false;
+}
+
 void Map::draw(Renderer& renderer) const {
     for (int r = 0; r < MAP_ROWS; ++r) {
         for (int c = 0; c < MAP_COLS; ++c) {
@@ -103,6 +117,13 @@ void Map::draw(Renderer& renderer) const {
                     { c * TILE_SIZE + 10, r * TILE_SIZE + 10, 4, 4 },
                     { 255, 255, 255 }
                 );
+                break;
+            case Tile::SuperPellet:
+                renderer.draw_circle(
+                    c * TILE_SIZE + HALF_TILE_SIZE,
+                    r * TILE_SIZE + HALF_TILE_SIZE,
+                    7, 
+                    { 255, 255, 255 });
                 break;
             default: break;
             }
