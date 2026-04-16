@@ -11,7 +11,7 @@ export class Pacman {
 public:
 	Pacman() = default;
 
-	void reset(Map* map);
+	void reset(const Map* map);
 
 	void draw(Renderer& renderer);
 
@@ -39,7 +39,7 @@ private:
 	float accumulator_ = 0.f; // accumulator for movement timing
 	float speed_ = 0.0f;
 
-	Map* map_ = nullptr; // pointer, rebindable, nullable
+	const Map* map_ = nullptr; // pointer, rebindable, nullable
 
 	int pixel_x() const;
 	int pixel_y() const;

@@ -4,7 +4,7 @@ module;
 
 module game.pacman;
 
-void Pacman::reset(Map* map) {
+void Pacman::reset(const Map* map) {
 	map_ = map;
 
 	col_ = 13;
