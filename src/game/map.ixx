@@ -24,10 +24,10 @@ public:
     Tile tile_at(float px, float py) const;
     [[nodiscard]] Tile tile_at_index(int row, int col) const;
 
+	void clear_tile(int col, int row);
+
     bool is_wall(float px, float py) const;
 	bool is_wall_at(int col, int row) const;
-
-	bool collect_pellet_at(int col, int row);
 
 	void draw(Renderer& renderer) const;
 

@@ -21,6 +21,11 @@ public:
 
 	AABB getBounds() const;
 
+	bool is_at_tile_center() const;
+
+	int current_col() const { return col_; }
+	int current_row() const { return row_; }
+
 	[[nodiscard]] PacmanDebugState debug_state() const;
 
 private:

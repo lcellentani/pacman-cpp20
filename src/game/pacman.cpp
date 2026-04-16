@@ -59,8 +59,6 @@ void Pacman::update(float dt) {
 			// At a tile center — this is the only moment decisions are made
 			if (can_move(col_, row_, queued_dir_)) {
 				current_dir_ = queued_dir_;
-
-				map_->collect_pellet_at(col_, row_); // Collect pellet if present
 			}
 			if (!can_move(col_, row_, current_dir_)) {
 				current_dir_ = { 0, 0 }; // Hit a wall, stop movement
@@ -86,6 +84,10 @@ void Pacman::update(float dt) {
 AABB Pacman::getBounds() const {
 	constexpr float margin = 2.f;
 	return { pixel_x() + margin, pixel_y() + margin, TILE_SIZE - margin * 2, TILE_SIZE - margin * 2};
+}
+
+bool Pacman::is_at_tile_center() const {
+	return offset_ == 0;
 }
 
 PacmanDebugState Pacman::debug_state() const {

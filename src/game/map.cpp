@@ -82,24 +82,18 @@ Tile Map::tile_at_index(int row, int col) const {
     return at(row, col);
 }
 
+void Map::clear_tile(int col, int row) {
+    if (row < 0 || row >= MAP_ROWS || col < 0 || col >= MAP_COLS)
+        return; // out-of-bounds, do nothing
+    at(row, col) = Tile::Empty;
+}
+
 bool Map::is_wall(float px, float py) const {
     return tile_at(px, py) == Tile::Wall;
 }
 
 bool Map::is_wall_at(int col, int row) const {
     return tile_at_index(row, col) == Tile::Wall;
-}
-
-bool Map::collect_pellet_at(int col, int row) {
-    if (tile_at_index(row, col) == Tile::Pellet) {
-        at(row, col) = Tile::Empty;
-        return true;
-    }
-    if (tile_at_index(row, col) == Tile::SuperPellet) {
-        at(row, col) = Tile::Empty;
-        return true;
-    }
-	return false;
 }
 
 void Map::draw(Renderer& renderer) const {

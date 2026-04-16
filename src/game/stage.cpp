@@ -27,6 +27,17 @@ void Stage::update(const InputState& input) {
 	pacman_entity_.handleInput(input);
 
 	pacman_entity_.update(0.016f);
+
+	if (pacman_entity_.is_at_tile_center()) {
+		int pac_col = pacman_entity_.current_col();
+		int pac_row = pacman_entity_.current_row();
+		if (map_.tile_at_index(pac_row, pac_col) == Tile::Pellet) {
+			map_.clear_tile(pac_col, pac_row);
+		}
+		else if (map_.tile_at_index(pac_row, pac_col) == Tile::SuperPellet) {
+			map_.clear_tile(pac_col, pac_row);
+		}
+	}
 }
 
 void Stage::render(Renderer& renderer) {
