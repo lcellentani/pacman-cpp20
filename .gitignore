@@ -63,7 +63,7 @@ CMakeSettings.json
 *.ifc
 *.ifcmap
 
-# SDL2 fetched by CMake
+# Dependencies fetched by CMake
 _deps/
 
 # Claude's files

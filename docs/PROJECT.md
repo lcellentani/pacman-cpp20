@@ -93,7 +93,7 @@ Hard compile-time boundaries between `engine.game`, `engine.renderer`, and `engi
 
 Time budget: ~2–5 hours per week. Total duration: ~16 weeks.
 
-### Phase 1 — Foundation (weeks 1–3)
+### Phase 1 — Foundation (weeks 1–3) ✅
 **Goal:** module graph, SDL2 window, tile map rendering, Pac-Man moving with arrow keys.
 
 - Set up CMake with `FILE_SET CXX_MODULES`
@@ -108,7 +108,7 @@ Time budget: ~2–5 hours per week. Total duration: ~16 weeks.
 
 ---
 
-### Phase 2 — Concepts-driven entity system (weeks 4–7)
+### Phase 2 — Concepts-driven entity system (weeks 4–7) 🔄
 **Goal:** define the entity model using C++20 Concepts before any AI logic is written.
 
 - Define `Drawable`, `Updatable`, `Collidable` concepts
@@ -117,6 +117,10 @@ Time budget: ~2–5 hours per week. Total duration: ~16 weeks.
 - No virtual dispatch anywhere in the entity system
 
 **C++20 focus:** Concepts
+
+**Open items before close:**
+- Replace hardcoded `0.016f` timestep in `Stage::update` with real delta time — precondition for coroutine timing in Phase 3
+- Add `score_` state to `Stage` and wire pellet/super-pellet increment — establishes the game state foundation Phase 4 will render
 
 **Success criterion:** adding a new entity type requires satisfying a concept, not inheriting from a base class. The compiler error messages when a type fails a concept are readable and useful.
 
@@ -145,8 +149,21 @@ Time budget: ~2–5 hours per week. Total duration: ~16 weeks.
 - Score display using `std::format`
 - SDL2 audio for pellet eating, ghost death, game over
 - High score persistence
+- **Animation system** — shape-based animation that makes entities feel alive without sprites
 
-**C++20 focus:** `std::format` (opportunistic)
+**C++20 focus:** `std::format` (opportunistic); coroutine infrastructure reused for animation sequences
+
+**Animation system design intent:**
+
+The coroutine scheduler built in Phase 3 for ghost AI is reused here at near-zero cost. Two distinct categories of animation are in scope:
+
+- **Looping animations** (Pac-Man mouth cycle, ghost body wobble) — pure functions of `elapsed_` time, no coroutines needed. An oscillating scalar drives shape parameters in `draw()` directly.
+- **One-shot sequences** (death spiral, frightened flash, level-clear) — timed sequences with suspension points. These are natural coroutines: `co_await timer(duration)` replaces state enums and frame counters. The sequence *is* the code.
+
+Design constraints to enforce at implementation time:
+- No general `Animator` clip system — implement the minimum that makes the game feel alive, nothing more.
+- One-shot animations own entity agency for their duration: input is suppressed, game logic is suspended until the coroutine signals completion back to `Stage`.
+- Animation state and game state must not diverge silently — the entity needs a clear concept of whether it is player-controlled or animation-controlled at any given moment.
 
 **Success criterion:** a person who has never seen the codebase can pick it up, play it, and have fun.
 
@@ -183,7 +200,7 @@ pacman/
 ├── CMakeLists.txt
 └── docs/
     ├── PROJECT.md          ← you are here
-    ├── docs/CODING_STANDARDS.md
+    ├── CODING_STANDARDS.md
     └── devlog/
         ├── phaseN-YYYY_MM_DD.md
         ├── phase-retro-template.md
@@ -257,7 +274,7 @@ At the end of the project, the git log tells an honest story of where the author
 
 ---
 
-
+## References
 
 - [C++20 Coroutines — cppreference](https://en.cppreference.com/w/cpp/language/coroutines)
 - [C++20 Modules — cppreference](https://en.cppreference.com/w/cpp/language/modules)
