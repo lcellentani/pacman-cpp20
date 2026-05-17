@@ -1,0 +1,19 @@
+CompileFlags:
+  # Point clangd at the Ninja/Clang build dir so it finds compile_commands.json
+  # without relying on cmake.copyCompileCommands (which only fires on VS Code configure).
+  CompilationDatabase: out/build/clang-ninja-debug
+  # /ZI (edit-and-continue PDB) and /RTC1 (runtime checks) are MSVC-specific
+  # flags that clangd doesn't need and sometimes warns about.
+  Remove: [/ZI, /Zi, /RTC1, /MP]
+
+Diagnostics:
+  UnusedIncludes: Strict
+
+InlayHints:
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes
+  Designators: Yes
+
+Index:
+  Background: Build

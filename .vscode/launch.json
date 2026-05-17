@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug (clang-ninja-debug)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            // cmake.launchTargetPath resolves to the active CMake target's binary.
+            "program": "${command:cmake.launchTargetPath}",
+            // SDL2 DLL lives next to the executable, so cwd must match.
+            "cwd": "${command:cmake.launchTargetDirectory}",
+            "args": [],
+            "stopAtEntry": false,
+            "environment": [],
+            "console": "externalTerminal",
+            "preLaunchTask": "CMake: build"
+        }
+    ]
+}

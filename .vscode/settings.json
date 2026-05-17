@@ -1,0 +1,44 @@
+{
+    // ── Terminal ──────────────────────────────────────────────────────────────
+    "terminal.integrated.defaultProfile.windows": "Git Bash",
+    "terminal.integrated.profiles.windows": {
+        "Git Bash": {
+            "source": "Git Bash",
+            "icon": "terminal-bash"
+        }
+    },
+
+    // ── CMake Tools ───────────────────────────────────────────────────────────
+    // "always" tells CMake Tools to drive everything through CMakePresets.json
+    // and skip kit selection (the preset already specifies clang++).
+    "cmake.useCMakePresets": "always",
+    "cmake.configurePreset": "clang-ninja-debug",
+    "cmake.buildPreset": "clang-ninja-debug",
+    // Copy compile_commands.json to the workspace root so clangd finds it.
+    "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
+
+    // ── clangd ────────────────────────────────────────────────────────────────
+    "clangd.path": "C:\\Program Files\\LLVM\\bin\\clangd.exe",
+    "clangd.arguments": [
+        "--background-index",
+        "--clang-tidy",
+        "--completion-style=detailed",
+        "--function-arg-placeholders=false",
+        "--header-insertion=never",
+        "--log=error",
+        // Let clangd interrogate clang++ for its system include paths (critical on Windows).
+        "--query-driver=C:/Program Files/LLVM/bin/clang++.exe"
+    ],
+
+    // ── C/C++ extension ───────────────────────────────────────────────────────
+    // Disable the built-in IntelliSense engine; clangd handles it.
+    "C_Cpp.intelliSenseEngine": "disabled",
+
+    // ── Editor defaults ───────────────────────────────────────────────────────
+    "[cpp]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    },
+    "[c]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    }
+}

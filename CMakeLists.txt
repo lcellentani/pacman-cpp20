@@ -7,6 +7,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Required for MSVC module scanning
 set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 
+# SDL2 2.30.x defines _m_prefetch inside #ifndef __PRFCHWINTRIN_H as a Clang
+# workaround. Clang 22 added _m_prefetch as a builtin, so SDL2's definition now
+# collides (hard error). Predefining the guard lets Clang's builtin win and
+# skips SDL2's conflicting definition. C-mode SDL2 sources need it too.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT MSVC)
+    add_compile_options(-D__PRFCHWINTRIN_H)
+endif()
+
 # Fetch SDL2
 include(FetchContent)
 FetchContent_Declare(
@@ -68,8 +76,13 @@ target_sources(pacman
 
 target_link_libraries(pacman PRIVATE SDL2::SDL2 SDL2::SDL2main imgui)
 
-# MSVC: disable legacy header units, enable standard conformance
-target_compile_options(pacman PRIVATE /W4 /permissive- /EHsc)
+if(MSVC)
+    # cl.exe and clang-cl: strict conformance, high warnings
+    target_compile_options(pacman PRIVATE /W4 /permissive- /EHsc)
+else()
+    # clang++/g++ GNU frontend
+    target_compile_options(pacman PRIVATE -Wall -Wextra -Wpedantic -fexceptions)
+endif()
 
 add_custom_command(TARGET pacman POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different

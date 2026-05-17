@@ -32,7 +32,7 @@ public:
 	void draw(Renderer& renderer) const;
 
 private:
-    // Flat storage — index with at(row, col)
+    // Flat storage: index with at(row, col)
     std::array<Tile, MAP_ROWS* MAP_COLS> map_;
 
     [[nodiscard]] Tile& at(int row, int col) {

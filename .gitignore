@@ -48,6 +48,7 @@ CMakeFiles/
 cmake_install.cmake
 install_manifest.txt
 CMakeSettings.json
+compile_commands.json
 
 # Visual Studio 2026
 .vs/
