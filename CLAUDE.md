@@ -16,12 +16,16 @@ Phase 3 target: coroutine ghost AI. Do not start ghost implementation until the 
 
 ## Build
 
-From an **x64 Developer Command Prompt for VS 2026**:
+Toolchain-specific shell requirements:
+- **MSVC presets** — run from an x64 Developer Command Prompt for VS 2026
+- **Clang+Ninja presets** — run from Git Bash
 
 ```bash
-cmake --preset msvc-x64-debug
-cmake --build --preset msvc-x64-debug
+cmake --preset <preset-name>
+cmake --build --preset <preset-name>
 ```
+
+Replace `<preset-name>` with a value from `CMakePresets.json`.
 
 Dependencies (SDL2 2.30.2, ImGui 1.91.9b) are fetched automatically via FetchContent. There is no test framework and no linter — MSVC `/W4 /permissive-` strict mode is the quality gate. Concept satisfaction is asserted at compile time (e.g., `static_assert(GameEntity<Pacman>)`).
 
