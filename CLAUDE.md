@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A fully playable Pac-Man clone built with C++20 as a deliberate learning project. Every architectural decision maps to a specific C++20 feature: **Modules** for project structure, **Concepts** for the entity system, and **Coroutines** for ghost AI (planned). The goal is code that is technically defensible and feels good to play.
 
+## Current Status
+
+Phase 2 is near-complete. Two open items before Phase 3 can begin:
+- Replace hardcoded `0.016f` timestep in `Stage::update` with real delta time
+- Add `score_` state to `Stage` and wire pellet/super-pellet increment
+
+Phase 3 target: coroutine ghost AI. Do not start ghost implementation until the delta time and score foundation are in place.
+
 ## Build
 
 From an **x64 Developer Command Prompt for VS 2026**:
