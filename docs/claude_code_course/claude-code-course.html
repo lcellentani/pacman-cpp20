@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code CLI — Deep Mastery Course</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0b0c0e;
+    --surface:   #111318;
+    --border:    #1e2128;
+    --border-hi: #2e3340;
+    --amber:     #f0a500;
+    --amber-dim: #7a5200;
+    --green:     #39d353;
+    --green-dim: #1a4a25;
+    --red:       #ff4d4d;
+    --blue:      #4da6ff;
+    --muted:     #4a5160;
+    --text:      #c8cdd8;
+    --text-hi:   #eef0f5;
+    --mono:      'JetBrains Mono', monospace;
+    --display:   'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── Scanline overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── Layout ── */
+  .shell {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── Header ── */
+  .header {
+    border-bottom: 1px solid var(--border-hi);
+    padding-bottom: 32px;
+    margin-bottom: 40px;
+  }
+
+  .header-tag {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  .header-tag::before { content: '▶ '; }
+
+  h1 {
+    font-family: var(--display);
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--text-hi);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  h1 span {
+    color: var(--amber);
+  }
+
+  .header-sub {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .header-meta {
+    margin-top: 24px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .meta-pill {
+    border: 1px solid var(--border-hi);
+    border-radius: 3px;
+    padding: 4px 12px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .meta-pill strong { color: var(--text); }
+
+  /* ── Section headers ── */
+  h2 {
+    font-family: var(--display);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-hi);
+    margin-bottom: 16px;
+    letter-spacing: -0.01em;
+  }
+
+  h2::before {
+    content: '// ';
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 300;
+  }
+
+  h3 {
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--amber);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+    transition: border-color 0.15s;
+  }
+
+  .card:hover { border-color: var(--border-hi); }
+
+  .card-accent {
+    border-left: 3px solid var(--amber);
+  }
+
+  .card-green {
+    border-left: 3px solid var(--green);
+  }
+
+  .card-blue {
+    border-left: 3px solid var(--blue);
+  }
+
+  /* ── Module table ── */
+  .module-grid {
+    display: grid;
+    gap: 2px;
+    margin-bottom: 40px;
+  }
+
+  .module-row {
+    display: grid;
+    grid-template-columns: 48px 1fr 120px 80px;
+    gap: 16px;
+    align-items: start;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    transition: border-color 0.15s, background 0.15s;
+    cursor: default;
+  }
+
+  .module-row:hover {
+    border-color: var(--border-hi);
+    background: #141720;
+  }
+
+  .module-row.active {
+    border-color: var(--amber-dim);
+    background: #141106;
+  }
+
+  .module-row.done {
+    opacity: 0.55;
+  }
+
+  .module-num {
+    font-size: 20px;
+    font-weight: 700;
+    font-family: var(--display);
+    color: var(--muted);
+    line-height: 1;
+    padding-top: 2px;
+  }
+
+  .module-row.active .module-num { color: var(--amber); }
+  .module-row.done   .module-num { color: var(--green-dim); }
+
+  .module-title {
+    color: var(--text-hi);
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+
+  .module-desc {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .module-tag {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-align: right;
+    padding-top: 3px;
+  }
+
+  .status-badge {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 2px;
+    padding: 2px 7px;
+    text-align: center;
+  }
+
+  .badge-todo    { background: #1e2128; color: var(--muted); }
+  .badge-next    { background: #2a1f00; color: var(--amber); border: 1px solid var(--amber-dim); }
+  .badge-done    { background: var(--green-dim); color: var(--green); }
+  .badge-skip    { background: #1e2128; color: var(--muted); }
+
+  /* ── Code blocks ── */
+  pre {
+    background: #080a0d;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 12px 0;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  code {
+    font-family: var(--mono);
+  }
+
+  .line-comment { color: var(--muted); }
+  .line-cmd     { color: var(--amber); }
+  .line-arg     { color: var(--blue); }
+  .line-out     { color: var(--green); }
+  .line-path    { color: #c792ea; }
+
+  /* ── Inline code ── */
+  p code, li code {
+    background: #141720;
+    border: 1px solid var(--border-hi);
+    border-radius: 2px;
+    padding: 1px 6px;
+    color: var(--amber);
+    font-size: 12px;
+  }
+
+  /* ── Paragraphs & lists ── */
+  p { margin-bottom: 10px; }
+
+  ul {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  ul li::before {
+    content: '— ';
+    color: var(--muted);
+  }
+
+  ul li { margin-bottom: 4px; }
+
+  ol {
+    padding-left: 20px;
+  }
+
+  ol li { margin-bottom: 4px; }
+
+  /* ── Sections ── */
+  section {
+    margin-bottom: 48px;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 32px 0;
+  }
+
+  /* ── Callout boxes ── */
+  .callout {
+    border: 1px solid var(--border-hi);
+    border-radius: 3px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 12px;
+  }
+
+  .callout-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .callout-amber { border-left: 3px solid var(--amber); background: #0e0b02; }
+  .callout-amber .callout-label { color: var(--amber); }
+
+  .callout-green { border-left: 3px solid var(--green); background: #040d06; }
+  .callout-green .callout-label { color: var(--green); }
+
+  .callout-blue  { border-left: 3px solid var(--blue); background: #020810; }
+  .callout-blue  .callout-label { color: var(--blue); }
+
+  .callout-red   { border-left: 3px solid var(--red); background: #0d0202; }
+  .callout-red   .callout-label { color: var(--red); }
+
+  /* ── Session log table ── */
+  .log-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 24px;
+  }
+
+  .log-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border-hi);
+    font-weight: 400;
+  }
+
+  .log-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  .log-table tr:last-child td { border-bottom: none; }
+
+  .log-table .col-session { width: 80px; color: var(--amber); font-weight: 600; }
+  .log-table .col-date    { width: 100px; color: var(--muted); }
+  .log-table .col-module  { width: 100px; }
+  .log-table .col-status  { width: 80px; }
+
+  /* ── Tier legend ── */
+  .tier-row {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+
+  .tier-row:last-child { border-bottom: none; }
+
+  .tier-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--display);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .t1 { background: #2a1f00; color: var(--amber); }
+  .t2 { background: #0c2c14; color: var(--green); }
+  .t3 { background: #091826; color: var(--blue); }
+  .t4 { background: #1e2128; color: var(--muted); }
+
+  /* ── Prompt recipes ── */
+  .prompt-block {
+    background: #060810;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 3px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #a8b8d0;
+    margin: 8px 0;
+    font-style: italic;
+  }
+
+  .prompt-block::before {
+    content: '$ claude "';
+    color: var(--muted);
+    font-style: normal;
+  }
+
+  .prompt-block::after {
+    content: '"';
+    color: var(--muted);
+    font-style: normal;
+  }
+
+  /* ── Arch diagram ── */
+  .arch-layer {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 12px 16px;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+  }
+
+  .arch-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    width: 90px;
+    flex-shrink: 0;
+  }
+
+  .arch-layer.l-core    { background: #0d0f14; }
+  .arch-layer.l-deleg   { background: #0a0c10; border-color: var(--amber-dim); }
+  .arch-layer.l-ext     { background: #070810; border-color: #1e2850; }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ── Blink cursor ── */
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+
+  .cursor {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    background: var(--amber);
+    vertical-align: middle;
+    margin-left: 2px;
+    animation: blink 1.1s step-end infinite;
+  }
+
+  /* ── Scope badge ── */
+  .scope {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+
+  .scope-global  { background: #1e2128; color: #888; }
+  .scope-project { background: #2a1f00; color: var(--amber); }
+  .scope-local   { background: #091826; color: var(--blue); }
+
+  /* ── Exercise box ── */
+  .exercise {
+    border: 1px dashed var(--border-hi);
+    border-radius: 3px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+
+  .exercise-num {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 8px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    h1 { font-size: 28px; }
+    .module-row { grid-template-columns: 36px 1fr; }
+    .module-tag, .status-badge { display: none; }
+    .footer { flex-direction: column; gap: 8px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ═══════════════════════════════════════════ HEADER -->
+  <header class="header">
+    <div class="header-tag">Claude Code CLI · Deep Mastery Course</div>
+    <h1>From Surface<br>to <span>System</span><span class="cursor"></span></h1>
+    <p class="header-sub">A hands-on course for the pacman-cpp20 project environment &amp; beyond.</p>
+    <div class="header-meta">
+      <div class="meta-pill">Student: <strong>Ludovico Cellentani</strong></div>
+      <div class="meta-pill">Started: <strong>2026-05-18</strong></div>
+      <div class="meta-pill">Current session: <strong>01</strong></div>
+      <div class="meta-pill">Next lesson: <strong>M3 · Permission model</strong></div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════ PURPOSE -->
+  <section>
+    <h2>What this course is</h2>
+    <div class="card card-accent">
+      <p>Claude Code CLI is not a smarter autocomplete. It is an autonomous agent that reads, writes, builds, and reasons about your codebase. Most users only ever see the surface — the chat loop. This course dismantles that surface and goes all the way down: architecture, configuration hierarchy, the permission and hook systems, multi-agent delegation, MCP integration, and the mental models that separate power users from casual ones.</p>
+      <p style="margin-top:10px">Every lesson is grounded in a real codebase — <strong>pacman-cpp20</strong> — a C++20 project with Modules, Concepts, Coroutines, and a custom ECS. The concrete exercises are not toy examples. They are the kind of problems you would face in production engine work.</p>
+    </div>
+
+    <div class="callout callout-amber">
+      <div class="callout-label">How to use this file</div>
+      At the start of every session, paste this file into the conversation along with the current session log. Claude will read both and know exactly where to resume. No explanation needed. The file is the context.
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ ARCHITECTURE PRIMER -->
+  <section>
+    <h2>Mental model — the three layers</h2>
+    <p style="margin-bottom:14px">Before the modules: the architecture. Every feature you will learn lives in one of these three layers. Knowing which layer you are operating in changes how you use the tool.</p>
+
+    <div class="arch-layer l-core">
+      <div class="arch-label" style="color:var(--text)">Core</div>
+      <div>The main conversation. <strong>200K token window</strong> (1M with Max). Every file read, tool output, and message consumes from this shared pool. When it fills, quality degrades. <em>Cost: every token.</em></div>
+    </div>
+    <div class="arch-layer l-deleg">
+      <div class="arch-label" style="color:var(--amber)">Delegation</div>
+      <div>Subagents spawn with <strong>clean contexts</strong>, do focused work, and return only summaries. Exploration does not bloat your main session. Use Haiku subagents for cheap exploration, Sonnet/Opus for implementation.</div>
+    </div>
+    <div class="arch-layer l-ext">
+      <div class="arch-label" style="color:var(--blue)">Extension</div>
+      <div><strong>MCP</strong> connects external services. <strong>Hooks</strong> guarantee shell commands run regardless of model behavior. <strong>Skills</strong> encode domain expertise. <strong>Plugins</strong> package all of the above.</div>
+    </div>
+
+    <div class="callout callout-blue" style="margin-top:16px">
+      <div class="callout-label">The insight</div>
+      Most users work entirely in the Core layer and wonder why context bloats and costs climb. The goal of this course is to move you into all three layers confidently.
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ CURRICULUM -->
+  <section>
+    <h2>Curriculum — 9 modules</h2>
+
+    <div class="module-grid">
+
+      <!-- M1 -->
+      <div class="module-row">
+        <div class="module-num">01</div>
+        <div>
+          <div class="module-title">Orientation — surface to system</div>
+          <div class="module-desc">Install, first run, the REPL loop. What Claude Code actually does when you type a message. The difference from Claude Desktop / Claude.ai. The three layers. Tour of the binary: <code>claude</code>, <code>claude -p</code>, <code>claude --resume</code>.</div>
+        </div>
+        <div class="module-tag">Foundation</div>
+        <div><span class="status-badge badge-done">Done</span></div>
+      </div>
+
+      <!-- M2 -->
+      <div class="module-row">
+        <div class="module-num">02</div>
+        <div>
+          <div class="module-title">Configuration hierarchy &amp; CLAUDE.md drift audit</div>
+          <div class="module-desc">The four config scopes: global <code>~/.claude/</code>, project <code>.claude/</code>, local overrides, env vars. <code>CLAUDE.md</code> as a living test against the codebase, not static docs. Three-step audit pattern: read-only scan → human review → targeted edit. Modular rules in <code>.claude/rules/</code>. Exercise: audit and reconcile the existing pacman-cpp20 <code>CLAUDE.md</code> against the real source tree.</div>
+        </div>
+        <div class="module-tag">Configuration</div>
+        <div><span class="status-badge badge-done">Done</span></div>
+      </div>
+
+      <!-- M3 -->
+      <div class="module-row active">
+        <div class="module-num">03</div>
+        <div>
+          <div class="module-title">Permission model — gating tool execution</div>
+          <div class="module-desc">The permission prompt system. <code>--allowedTools</code> / <code>--disallowedTools</code>. The five permission modes: <code>default</code>, <code>acceptEdits</code>, <code>auto</code>, <code>dontAsk</code>, <code>plan</code>. CI/CD headless mode. Safe operation on a production codebase.</div>
+        </div>
+        <div class="module-tag">Security</div>
+        <div><span class="status-badge badge-next">Next</span></div>
+      </div>
+
+      <!-- M4 -->
+      <div class="module-row">
+        <div class="module-num">04</div>
+        <div>
+          <div class="module-title">Context management — fighting entropy</div>
+          <div class="module-desc"><code>/compact</code> vs <code>/clear</code>. The auto-compaction threshold (80% usage). Custom compaction instructions. Auto-memory at <code>~/.claude/projects/&lt;project&gt;/memory/</code>. CLAUDE.md as session bootstrap. How to re-establish full context in one shot after a reset.</div>
+        </div>
+        <div class="module-tag">Context</div>
+        <div><span class="status-badge badge-todo">Todo</span></div>
+      </div>
+
+      <!-- M5 -->
+      <div class="module-row">
+        <div class="module-num">05</div>
+        <div>
+          <div class="module-title">Custom commands &amp; skills</div>
+          <div class="module-desc">Slash commands in <code>.claude/commands/</code> (project-scoped) and <code>~/.claude/commands/</code> (global). Parameterized commands with <code>$ARGUMENTS</code>. Skills — markdown guides that Claude invokes via natural language. Building a C++ review skill for pacman-cpp20. SKILL.md discovery.</div>
+        </div>
+        <div class="module-tag">Productivity</div>
+        <div><span class="status-badge badge-todo">Todo</span></div>
+      </div>
+
+      <!-- M6 -->
+      <div class="module-row">
+        <div class="module-num">06</div>
+        <div>
+          <div class="module-title">Hooks — deterministic automation</div>
+          <div class="module-desc">Why hooks, not prompts, for things that must always run. Lifecycle events: <code>PreToolUse</code>, <code>PostToolUse</code>, <code>PostToolUse continueOnBlock</code>. A real hook: auto-run CMake build + MSVC error parser after every file write. Hooks vs Skills vs Commands — the decision matrix.</div>
+        </div>
+        <div class="module-tag">Automation</div>
+        <div><span class="status-badge badge-todo">Todo</span></div>
+      </div>
+
+      <!-- M7 -->
+      <div class="module-row">
+        <div class="module-num">07</div>
+        <div>
+          <div class="module-title">Subagents &amp; multi-agent delegation</div>
+          <div class="module-desc">When to spawn a subagent. Model selection per task (Haiku for exploration, Sonnet for impl, Opus for deep reasoning). Worktree isolation with <code>--worktree</code>. The <code>/batch</code> command. Agent view via <code>claude agents</code>. Practical exercise: parallel ghost AI subagents, each implementing one personality.</div>
+        </div>
+        <div class="module-tag">Advanced</div>
+        <div><span class="status-badge badge-todo">Todo</span></div>
+      </div>
+
+      <!-- M8 -->
+      <div class="module-row">
+        <div class="module-num">08</div>
+        <div>
+          <div class="module-title">MCP — extending the tool surface</div>
+          <div class="module-desc">The Model Context Protocol in one page. Adding servers: <code>claude mcp add</code>, scopes (<code>--scope project/local/global</code>), <code>.mcp.json</code>. Token limits and <code>MAX_MCP_OUTPUT_TOKENS</code>. OAuth vs credential-based servers. Practical: connect a GitHub MCP server to wire pacman-cpp20 issues directly into the session.</div>
+        </div>
+        <div class="module-tag">Integration</div>
+        <div><span class="status-badge badge-todo">Todo</span></div>
+      </div>
+
+      <!-- M9 -->
+      <div class="module-row">
+        <div class="module-num">09</div>
+        <div>
+          <div class="module-title">Cost, model selection &amp; sustainable usage</div>
+          <div class="module-desc">Understanding <code>/cost</code>. The real cost of a multi-agent session (100K–200K tokens is routine). Fast Mode — same Opus, speed-optimised settings; when to turn it off. Weekly rate limits and the Pro/Max/API tradeoff. A decision framework for choosing model tier per task type.</div>
+        </div>
+        <div class="module-tag">Operations</div>
+        <div><span class="status-badge badge-todo">Todo</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ M1 DETAIL -->
+  <section>
+    <h2>Module 01 — Orientation</h2>
+
+    <div class="card card-accent">
+      <h3>Lesson goal</h3>
+      <p>By the end of this lesson you have Claude Code installed, running against pacman-cpp20, and a clear mental model of what it is — not what the marketing says, what it actually does. You should be able to explain the REPL loop, the difference from Claude Desktop, and name all three architecture layers without looking.</p>
+    </div>
+
+    <h3 style="margin-top:24px">1.1 — What Claude Code is not</h3>
+    <p>Claude Code is not an IDE plugin. It is not a chat interface with file access bolted on. It is a <strong>shell-resident autonomous agent</strong>. It runs in your terminal. It reads your filesystem. It executes commands. It writes files. It builds your project. The REPL is just how you give it the initial directive — after that, it acts.</p>
+    <p>The key difference from Claude Desktop or claude.ai: those are <em>conversation tools</em>. Claude Code is an <em>execution agent</em>. The gap is not cosmetic.</p>
+
+    <h3 style="margin-top:24px">1.2 — Installation</h3>
+    <pre><code><span class="line-comment"># Requires Node.js 18+</span>
+<span class="line-cmd">npm install -g @anthropic-ai/claude-code</span>
+
+<span class="line-comment"># Authenticate (opens browser)</span>
+<span class="line-cmd">claude</span>
+
+<span class="line-comment"># Confirm version</span>
+<span class="line-cmd">claude --version</span></code></pre>
+
+    <div class="callout callout-amber">
+      <div class="callout-label">Subscription vs API key</div>
+      A Pro or Max subscription gives you a fixed monthly allowance — preferable if you use it consistently. API key access charges per token — preferable if usage is irregular or you want to avoid rate limit windows. For this course, either works; the features are identical.
+    </div>
+
+    <h3 style="margin-top:24px">1.3 — Three modes of operation</h3>
+    <div class="card">
+      <code class="line-cmd">claude</code><br>
+      <p style="margin-top:6px;color:var(--muted)">Interactive REPL. Maintains full conversation context across turns. Compacts automatically when the context window fills. This is your primary mode.</p>
+    </div>
+    <div class="card">
+      <code class="line-cmd">claude -p "your task here"</code><br>
+      <p style="margin-top:6px;color:var(--muted)">Print mode — single query, exits. No persistent context. Useful for scripting, one-shot analysis, piped input.</p>
+    </div>
+    <div class="card">
+      <code class="line-cmd">claude --resume</code><br>
+      <p style="margin-top:6px;color:var(--muted)">Resume the most recent session. Context from the last run is reloaded. Critical for multi-day work on a single task.</p>
+    </div>
+
+    <h3 style="margin-top:24px">1.4 — First session on pacman-cpp20</h3>
+    <div class="exercise">
+      <div class="exercise-num">Exercise 01-A</div>
+      <p>Navigate to your pacman-cpp20 root. Launch the REPL. Give Claude Code this exact task:</p>
+      <div class="prompt-block">Read the project structure. Identify all C++20 module interface units (.ixx files), list the module dependency graph, and tell me which module has the most dependents.</div>
+      <p style="margin-top:10px">Observe: what files does it read? What tools does it call? How does it reason? This is not about the answer — it is about watching the agent work.</p>
+    </div>
+
+    <div class="exercise">
+      <div class="exercise-num">Exercise 01-B</div>
+      <p>While still in the session, ask:</p>
+      <div class="prompt-block">Run the clang-ninja-debug build and report all warnings and errors with their line numbers.</div>
+      <p style="margin-top:10px">Observe the permission prompt. Understand what it is asking before you approve. This is the first moment where the agent wants to execute — not just read.</p>
+    </div>
+
+    <h3 style="margin-top:24px">1.5 — The delegation tiers (from your project)</h3>
+    <p>Your pacman-cpp20 project already defines a four-tier human-AI delegation model. This maps cleanly to how you should think about Claude Code tasks:</p>
+
+    <div style="margin-top:12px">
+      <div class="tier-row">
+        <div class="tier-num t1">T1</div>
+        <div><strong style="color:var(--text-hi)">Author drives, agent is silent.</strong> C++20 feature implementations, architectural decisions, ghost AI logic. You write it. Claude does not touch it until you request a review.</div>
+      </div>
+      <div class="tier-row">
+        <div class="tier-num t2">T2</div>
+        <div><strong style="color:var(--text-hi)">Author drives, agent navigates.</strong> You are writing coroutine code live. You ask mid-implementation: "Does this awaitable structure compose correctly with the scheduler?" Agent responds to what you have built.</div>
+      </div>
+      <div class="tier-row">
+        <div class="tier-num t3">T3</div>
+        <div><strong style="color:var(--text-hi)">Agent drafts, author owns.</strong> CMake boilerplate, SDL2 wiring, CLAUDE.md authoring. Agent produces; you read every line before committing.</div>
+      </div>
+      <div class="tier-row">
+        <div class="tier-num t4">T4</div>
+        <div><strong style="color:var(--text-hi)">Full delegation.</strong> MSVC module scanning errors with no learning value. Documentation formatting. Repetitive patterns you have already internalised from a prior instance.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px">1.6 — Session close checklist</h3>
+    <div class="callout callout-green">
+      <div class="callout-label">Before you close any Claude Code session</div>
+      <ol style="padding-left:16px;margin-top:4px">
+        <li>Save anything worth keeping to <code>CLAUDE.md</code> or a devlog note — the session context will not survive a hard reset.</li>
+        <li>Note where you stopped in the session log below.</li>
+        <li>If the session compacted, check that the compaction summary captured the key architectural decisions correctly. Edit <code>CLAUDE.md</code> if it missed anything.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ CLAUDE.MD PRIMER -->
+  <section>
+    <h2>CLAUDE.md — the highest-leverage file</h2>
+    <p>This gets its own section because it is the single most impactful thing you can do before any session. Claude Code reads <code>CLAUDE.md</code> at session start, every time. It is the bootstrap that replaces all the context you would otherwise need to re-explain.</p>
+
+    <p>There are three scopes:</p>
+    <div class="card">
+      <span class="scope scope-global">Global</span> <code>~/.claude/CLAUDE.md</code>
+      <p style="margin-top:6px;color:var(--muted);font-size:12px">Applies to all projects. Your personal engineering preferences, preferred communication style, universal coding standards.</p>
+    </div>
+    <div class="card">
+      <span class="scope scope-project">Project</span> <code>pacman-cpp20/CLAUDE.md</code>
+      <p style="margin-top:6px;color:var(--muted);font-size:12px">Shared, git-managed. Build commands, architecture summary, module graph, the delegation tier model, C++20 feature decisions.</p>
+    </div>
+    <div class="card">
+      <span class="scope scope-local">Local</span> <code>pacman-cpp20/CLAUDE.local.md</code>
+      <p style="margin-top:6px;color:var(--muted);font-size:12px">Personal, not committed. Your current work-in-progress state, session-specific notes, things you want Claude to remember but not expose to the team.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ MODULE 02 -->
+  <section>
+    <h2>Module 02 — Configuration hierarchy &amp; CLAUDE.md drift audit</h2>
+
+    <div class="card card-accent">
+      <h3>Lesson goal</h3>
+      <p>By the end of this lesson you have a clear mental model of the configuration hierarchy, you understand why <code>CLAUDE.md</code> is a <em>test</em> against the codebase rather than static documentation, and you have hands-on experience with the three-step audit pattern. You will have applied it to the real pacman-cpp20 <code>CLAUDE.md</code>, which has drifted from the actual codebase state.</p>
+    </div>
+
+    <h3 style="margin-top:24px">2.1 — The configuration hierarchy</h3>
+    <p>Claude Code assembles its behaviour from four overlapping layers, applied in this order (later layers override earlier ones):</p>
+
+    <div class="card" style="margin-top:12px">
+      <div style="display:grid;grid-template-columns:28px 110px 1fr;gap:12px;align-items:start;padding:6px 0;border-bottom:1px solid var(--border)">
+        <div style="color:var(--muted);font-size:11px;font-weight:700">1</div>
+        <div><span class="scope scope-global">Global</span></div>
+        <div style="font-size:12px"><code>~/.claude/CLAUDE.md</code> · <code>~/.claude/settings.json</code><br><span style="color:var(--muted)">Your identity as an engineer. Applies to every project on this machine. Good place for personal code style preferences, communication style, and universal rules ("always explain what you changed and why").</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:28px 110px 1fr;gap:12px;align-items:start;padding:6px 0;border-bottom:1px solid var(--border);margin-top:8px">
+        <div style="color:var(--muted);font-size:11px;font-weight:700">2</div>
+        <div><span class="scope scope-project">Project</span></div>
+        <div style="font-size:12px"><code>CLAUDE.md</code> · <code>.claude/settings.json</code> · <code>.claude/rules/*.md</code><br><span style="color:var(--muted)">Git-committed. The shared contract for the project. Build commands, architecture, conventions, delegation tiers. Every team member (and every session) starts from the same baseline.</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:28px 110px 1fr;gap:12px;align-items:start;padding:6px 0;border-bottom:1px solid var(--border);margin-top:8px">
+        <div style="color:var(--muted);font-size:11px;font-weight:700">3</div>
+        <div><span class="scope scope-local">Local</span></div>
+        <div style="font-size:12px"><code>CLAUDE.local.md</code> · <code>.claude/settings.local.json</code><br><span style="color:var(--muted)">Not committed. Personal overrides for this machine. Current WIP state, session notes, things you want Claude to remember that are not for the team.</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:28px 110px 1fr;gap:12px;align-items:start;padding:6px 0;margin-top:8px">
+        <div style="color:var(--muted);font-size:11px;font-weight:700">4</div>
+        <div><span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:2px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;background:#1e0a26;color:#c792ea;">Env</span></div>
+        <div style="font-size:12px"><code>ANTHROPIC_MODEL</code>, <code>MAX_MCP_OUTPUT_TOKENS</code>, etc.<br><span style="color:var(--muted)">Runtime overrides. Useful in CI/CD pipelines, container environments, or when switching model tiers mid-project without editing files.</span></div>
+      </div>
+    </div>
+
+    <div class="callout callout-blue" style="margin-top:16px">
+      <div class="callout-label">The practical implication</div>
+      When Claude Code behaves unexpectedly, the first question is: which layer is controlling this? A global <code>CLAUDE.md</code> instruction can silently override a project convention. Knowing the hierarchy tells you where to look.
+    </div>
+
+    <h3 style="margin-top:28px">2.2 — CLAUDE.md as a falsifiable test</h3>
+    <p>The common failure mode: developers write <code>CLAUDE.md</code> once, commit it, and never touch it again. Three months later the build commands changed, two new modules were added, and Phase 2 closed — but the file still describes the project as it was.</p>
+    <p style="margin-top:8px">This matters more than it would for ordinary documentation, because Claude Code <em>acts on</em> the file. Stale build commands mean it runs the wrong command and gets confused by the failure. A stale module graph means it makes incorrect assumptions about dependencies. A stale phase status means it may attempt things that are already done.</p>
+
+    <div class="callout callout-amber" style="margin-top:12px">
+      <div class="callout-label">The mental model shift</div>
+      Stop treating <code>CLAUDE.md</code> as documentation — documentation describes intent. Start treating it as a <strong>test suite</strong> — every claim is falsifiable. "The module graph looks like X" is a claim the source tree can confirm or contradict. "Phase 2 is near-complete" is a claim the code can confirm or contradict. When the codebase contradicts a claim, that is a failing test. The audit is the test run.
+    </div>
+
+    <h3 style="margin-top:28px">2.3 — The three-step audit pattern</h3>
+    <p>This pattern applies any time you suspect drift — after a sprint, after a refactor, when resuming a project after a break. It is also the general pattern for any Claude Code task that touches living documentation.</p>
+
+    <div style="margin-top:14px">
+      <div class="arch-layer l-core" style="margin-bottom:2px;border-left:3px solid var(--amber)">
+        <div class="arch-label" style="color:var(--amber)">Step 1<br><span style="font-size:9px;color:var(--muted)">Read-only</span></div>
+        <div style="font-size:12px"><strong style="color:var(--text-hi)">Audit — find the contradictions.</strong> Ask Claude Code to cross-reference <code>CLAUDE.md</code> against the source tree and list every claim that is stale, missing, or contradicted. No writes. No suggestions about what to add. Just a report: here is what the file says, here is what the code says, here is the delta.</div>
+      </div>
+      <div class="arch-layer l-deleg" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--text)">Step 2<br><span style="font-size:9px;color:var(--muted)">Human</span></div>
+        <div style="font-size:12px"><strong style="color:var(--text-hi)">Review — own the decision.</strong> Read the audit report. For each finding: accept it, override it, or flag it as something Claude Code missed. This is the T2 moment — you are driving. The agent surfaced the information; you decide what to do with it. Some "stale" items may be intentional. Some things Claude Code did not flag may be more important than what it did.</div>
+      </div>
+      <div class="arch-layer l-ext">
+        <div class="arch-label" style="color:var(--blue)">Step 3<br><span style="font-size:9px;color:var(--muted)">Targeted</span></div>
+        <div style="font-size:12px"><strong style="color:var(--text-hi)">Edit — apply only what you approved.</strong> Ask Claude Code to apply the specific changes from your reviewed list. Not "rewrite <code>CLAUDE.md</code>" — that loses intentional content and produces a file that belongs to the agent, not to you. Targeted edits to specific sections. You read every changed line before committing.</div>
+      </div>
+    </div>
+
+    <div class="callout callout-red" style="margin-top:16px">
+      <div class="callout-label">The trap to avoid</div>
+      The tempting shortcut: "Rewrite CLAUDE.md to match the current codebase." Do not do this. A free-form rewrite will silently discard intentional decisions — the delegation tier model, the coding conventions, the design principles — because they are not directly reflected in source files. The three-step pattern exists specifically to protect the parts of <code>CLAUDE.md</code> that express intent, not just state.
+    </div>
+
+    <h3 style="margin-top:28px">2.4 — Modular rules</h3>
+    <p>For larger projects, a monolithic <code>CLAUDE.md</code> becomes unwieldy. Claude Code supports splitting rules into separate files under <code>.claude/rules/</code>. Each file is a focused contract for a specific concern.</p>
+    <pre><code><span class="line-path">.claude/rules/</span>
+<span class="line-path">├── code-style.md</span>      <span class="line-comment"># naming, formatting, what to never do</span>
+<span class="line-path">├── build.md</span>           <span class="line-comment"># build commands, presets, output paths</span>
+<span class="line-path">├── architecture.md</span>    <span class="line-comment"># module graph, layer boundaries, invariants</span>
+<span class="line-path">└── delegation.md</span>      <span class="line-comment"># T1–T4 tiers, commit tag conventions</span></code></pre>
+    <p style="margin-top:8px">The top-level <code>CLAUDE.md</code> can then be a short index — what each rules file covers and when it applies. For pacman-cpp20 the monolithic file is fine at current scale, but knowing this exists prevents the "one giant file" trap as the project grows.</p>
+
+    <h3 style="margin-top:28px">2.5 — Exercises</h3>
+
+    <div class="exercise">
+      <div class="exercise-num">Exercise 02-A — The read-only audit</div>
+      <p>Open a Claude Code session in the pacman-cpp20 root. Use this prompt exactly as written — the constraint "do not suggest additions yet" is load-bearing:</p>
+      <div class="prompt-block">Read CLAUDE.md carefully. Then read the full source tree: all .ixx module interface files, CMakeLists.txt, and CMakePresets.json. Cross-reference every factual claim in CLAUDE.md against what you actually find. List only contradictions and stale items — things the file claims that the code does not support. Do not suggest additions yet. Format the output as a simple numbered list: [claim in CLAUDE.md] → [what the code actually shows].</div>
+      <p style="margin-top:10px">Observe: how does Claude Code navigate the files? Does it read every source file, or does it sample? What claims does it flag? What does it miss? The misses are as instructive as the hits — they reveal the limits of automated audit.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 02-B — Human review of the audit</div>
+      <p>Take the audit output from 02-A and review it offline — outside the Claude Code session if possible. For each finding, write a one-line decision next to it:</p>
+      <ul style="margin-top:8px">
+        <li><strong style="color:var(--green)">Accept</strong> — the finding is correct, update the file.</li>
+        <li><strong style="color:var(--amber)">Override</strong> — the finding is technically correct but the file's version is intentional. Note why.</li>
+        <li><strong style="color:var(--red)">Missed</strong> — something you know is stale that Claude Code did not flag. Add it to the list manually.</li>
+      </ul>
+      <p style="margin-top:10px">This step is done by you, not by Claude Code. The point is to practise the judgment that separates a useful <code>CLAUDE.md</code> from a mechanically accurate but contextually hollow one.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 02-C — Targeted edit</div>
+      <p>Return to the Claude Code session. Paste your reviewed list and use this prompt pattern — note the specificity:</p>
+      <div class="prompt-block">Apply only these changes to CLAUDE.md: [paste your accepted list]. Do not change anything not on this list. Show me a diff of every change before writing the file.</div>
+      <p style="margin-top:10px">The "show me a diff before writing" instruction is a habit worth building for any destructive operation. You see exactly what will change before it changes. Review the diff. Approve it. Then let Claude Code write the file.</p>
+      <p style="margin-top:8px">After the write: read the updated <code>CLAUDE.md</code> yourself. Commit it with the tag <code>[T3]</code> — Claude Code drafted it, you own it.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 02-D — Add a Current Status section</div>
+      <p>The one thing a good <code>CLAUDE.md</code> cannot derive from source files alone: where the project is <em>right now</em>. Add a short section by hand (not via Claude Code — this is T1 content):</p>
+      <pre style="margin-top:10px"><code><span class="line-comment">## Current Status</span>
+
+<span class="line-out">Phase 2 is near-complete. Two open items before Phase 3 can begin:</span>
+<span class="line-out">- Replace hardcoded `0.016f` timestep in `Stage::update` with real delta time</span>
+<span class="line-out">- Add `score_` state to `Stage` and wire pellet/super-pellet increment</span>
+
+<span class="line-out">Phase 3 target: coroutine ghost AI. Do not start ghost implementation</span>
+<span class="line-out">until the delta time and score foundation are in place.</span></code></pre>
+      <p style="margin-top:10px">Update this section every time you close a session where meaningful progress was made. It takes 30 seconds and is the single highest-signal thing in the file for resuming work.</p>
+    </div>
+
+    <h3 style="margin-top:28px">2.6 — Session close: what CLAUDE.md should always contain</h3>
+    <div class="card card-green">
+      <p>After Module 2, your <code>CLAUDE.md</code> should satisfy this checklist. Run it mentally before every commit of the file:</p>
+      <ul style="margin-top:10px">
+        <li>Build commands use <strong>preset syntax</strong>, not the legacy <code>-B/-G</code> form.</li>
+        <li>Output paths match the preset config (<code>out/build/&lt;preset&gt;</code>, not <code>build/</code>).</li>
+        <li>Module graph reflects the actual <code>.ixx</code> files in the tree.</li>
+        <li>Phase status is accurate — completed phases marked complete, open items listed explicitly.</li>
+        <li>Delegation tiers are present — they are not derivable from source and must be preserved through every rewrite.</li>
+        <li>A <strong>Current Status</strong> section exists and is dated or phase-tagged.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ PACMAN EXPANSION PLAN -->
+  <section>
+    <h2>Pacman-cpp20 — expansion scope</h2>
+    <p style="margin-bottom:14px">This course is not purely theoretical. The pacman-cpp20 project grows in parallel with your Claude Code mastery. The planned expansions below will serve as the real exercise environment for the advanced modules.</p>
+
+    <div class="card card-green">
+      <h3>Animation system — shape-based, no sprites</h3>
+      <p>A first-class 2D shape animation system. The design constraint is intentional: no bitmaps, no sprite sheets. Everything is constructed from geometric primitives animated over time. This forces you to think about animation as a mathematical relationship between time and shape parameters — the right abstraction for a coroutine-driven system.</p>
+      <p style="margin-top:8px">Two categories (already sketched in PROJECT.md):</p>
+      <ul style="margin-top:8px">
+        <li><strong>Looping animations</strong> — pure functions of <code>elapsed_</code>. Pac-Man mouth, ghost body wobble. No coroutines. An oscillating scalar drives shape parameters in <code>draw()</code>.</li>
+        <li><strong>One-shot sequences</strong> — timed sequences with suspension. Death spiral, frightened flash, level-clear. Natural coroutine territory: <code>co_await timer(duration)</code> replaces state enums and frame counters.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>Gameplay extensions (post-Phase 4)</h3>
+      <ul>
+        <li>Multiple mazes with different topologies</li>
+        <li>Power-up variety beyond the classic power pellet</li>
+        <li>Configurable ghost behaviour via data-driven parameters</li>
+        <li>A level editor leveraging the same shape-rendering pipeline</li>
+      </ul>
+    </div>
+
+    <div class="callout callout-amber">
+      <div class="callout-label">Claude Code's role in the expansion</div>
+      Modules 5–7 of this course will use the animation system as the hands-on exercise target. You design the architecture (T1). Claude Code navigates during implementation (T2). Hooks auto-build after every write (M6). A subagent handles the tedious SDL2 shape-drawing boilerplate while you focus on the coroutine scheduler (M7).
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ SESSION LOG -->
+  <section>
+    <h2>Session log</h2>
+    <p style="margin-bottom:16px;font-size:12px;color:var(--muted)">Update this table at the close of every session. Paste the updated file into the next session as context. The log is the thread that keeps the course coherent across time.</p>
+
+    <table class="log-table">
+      <thead>
+        <tr>
+          <th class="col-session">Session</th>
+          <th class="col-date">Date</th>
+          <th class="col-module">Module</th>
+          <th class="col-status">Status</th>
+          <th>What was covered / where to resume</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-session">01</td>
+          <td class="col-date">2026-05-18</td>
+          <td>M1 · M2</td>
+          <td><span class="status-badge badge-done">Done</span></td>
+          <td>M1 completed as conceptual checkpoint (install already done). M2 drift audit: fixed GameEntity composition, pacman_entity_ name, build commands (preset syntax, dual toolchain shell requirements, CMakePresets.json reference), added Current Status section. Resume: M3 — Permission model.</td>
+        </tr>
+        <tr>
+          <td class="col-session">—</td>
+          <td class="col-date">—</td>
+          <td>M3</td>
+          <td><span class="status-badge badge-next">Next</span></td>
+          <td style="color:var(--muted);font-style:italic">Permission model — gating tool execution.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-blue">
+      <div class="callout-label">Session log instructions</div>
+      At end of each session, manually edit this table by adding a row. Record: session number, date, which module was worked, status (Done / Partial / Blocked), and a one-sentence note on where to resume. The note should be specific enough that you can drop cold into the next session without re-reading the whole log.
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ QUICK REFERENCE -->
+  <section>
+    <h2>Quick reference — commands you will use daily</h2>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <h3 style="margin-bottom:10px">CLI flags</h3>
+        <pre style="margin:0"><code><span class="line-cmd">claude</span>                   <span class="line-comment"># REPL</span>
+<span class="line-cmd">claude -p</span> <span class="line-arg">"task"</span>          <span class="line-comment"># one-shot</span>
+<span class="line-cmd">claude --resume</span>          <span class="line-comment"># last session</span>
+<span class="line-cmd">claude --worktree</span>        <span class="line-comment"># isolated git worktree</span>
+<span class="line-cmd">claude --allowedTools</span>   <span class="line-comment"># gate tool calls</span>
+<span class="line-cmd">claude --permission-mode auto</span></code></pre>
+      </div>
+      <div>
+        <h3 style="margin-bottom:10px">Slash commands</h3>
+        <pre style="margin:0"><code><span class="line-cmd">/compact</span> <span class="line-arg">[what to keep]</span>  <span class="line-comment"># shrink context</span>
+<span class="line-cmd">/clear</span>                   <span class="line-comment"># full reset</span>
+<span class="line-cmd">/cost</span>                    <span class="line-comment"># token usage</span>
+<span class="line-cmd">/help</span>                    <span class="line-comment"># all commands</span>
+<span class="line-cmd">/exit</span>                    <span class="line-comment"># quit</span>
+<span class="line-cmd">/goal</span>                    <span class="line-comment"># completion loop</span></code></pre>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <h3 style="margin-bottom:10px">MCP management</h3>
+      <pre><code><span class="line-cmd">claude mcp add</span>                           <span class="line-comment"># interactive wizard</span>
+<span class="line-cmd">claude mcp add</span> <span class="line-arg">--scope project</span> <span class="line-arg">name url</span>  <span class="line-comment"># project-scoped</span>
+<span class="line-cmd">claude mcp list</span>                          <span class="line-comment"># show all servers</span>
+<span class="line-cmd">claude mcp serve</span>                         <span class="line-comment"># expose Claude Code as MCP server</span></code></pre>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ FOOTER -->
+  <footer class="footer">
+    <span>pacman-cpp20 · Claude Code CLI Course · v1.1</span>
+    <span>Update the session log and re-paste this file each session.</span>
+  </footer>
+
+</div>
+</body>
+</html>
