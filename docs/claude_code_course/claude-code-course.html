@@ -535,7 +535,7 @@
     <div class="header-meta">
       <div class="meta-pill">Student: <strong>Ludovico Cellentani</strong></div>
       <div class="meta-pill">Started: <strong>2026-05-19</strong></div>
-      <div class="meta-pill">Current session: <strong>01</strong></div>
+      <div class="meta-pill">Current session: <strong>02</strong></div>
       <div class="meta-pill">Next lesson: <strong>M3 · Permission model</strong></div>
     </div>
   </header>
@@ -614,7 +614,7 @@
           <div class="module-desc">The permission prompt system. <code>--allowedTools</code> / <code>--disallowedTools</code>. The five permission modes: <code>default</code>, <code>acceptEdits</code>, <code>auto</code>, <code>dontAsk</code>, <code>plan</code>. CI/CD headless mode. Safe operation on a production codebase.</div>
         </div>
         <div class="module-tag">Security</div>
-        <div><span class="status-badge badge-next">Next</span></div>
+        <div><span class="status-badge badge-next">Active</span></div>
       </div>
 
       <!-- M4 -->
@@ -933,6 +933,174 @@
     </div>
   </section>
 
+  <!-- ═══════════════════════════════════════════ MODULE 03 -->
+  <section>
+    <h2>Module 03 — Permission model &amp; gating tool execution</h2>
+
+    <div class="card card-accent">
+      <h3>Lesson goal</h3>
+      <p>By the end of this lesson you have a precise mental model of how Claude Code asks for — and acquires — permission to act. You understand every permission mode, know when each is appropriate, and can configure <code>--allowedTools</code> / <code>--disallowedTools</code> to gate execution to exactly the surface you want to expose. You will have practised running Claude Code in read-only mode, in auto mode, and in plan mode against pacman-cpp20.</p>
+    </div>
+
+    <h3 style="margin-top:24px">3.1 — Why permissions matter here</h3>
+    <p>Claude Code is an execution agent. The same property that makes it powerful — it acts — is what makes the permission model important. A misconfigured session can write files you did not intend, run build commands at the wrong time, or — in a worst case — touch things outside the project root.</p>
+    <p style="margin-top:8px">This is not a theoretical risk. It surfaces in practice when you run Claude Code in a shared codebase, in CI, or when you hand it a broad task without constraining its tool surface. The permission model is the mechanism that lets you match the agent's action radius to the trust you are actually willing to extend.</p>
+
+    <div class="callout callout-amber" style="margin-top:12px">
+      <div class="callout-label">The right mental model</div>
+      Think of permissions like function signatures. A function that takes no parameters and returns a value is safe to call without side effects — it is read-only. A function that takes a mutable reference to your filesystem and has no return type deserves more scrutiny. The permission system is how you control which signature Claude Code is allowed to call.
+    </div>
+
+    <h3 style="margin-top:28px">3.2 — The five permission modes</h3>
+    <p>Claude Code ships with five permission modes. They are set via <code>--permission-mode</code> on the CLI, or via <code>permissionMode</code> in <code>.claude/settings.json</code>. Later layers override earlier ones — a project setting overrides global, a CLI flag overrides a project setting.</p>
+
+    <div style="margin-top:14px">
+      <div class="arch-layer l-core" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--text-hi);width:110px"><code style="font-size:11px">default</code></div>
+        <div style="font-size:12px"><strong style="color:var(--text-hi)">Ask before every action.</strong> Claude Code prompts before each tool call that has side effects — file writes, shell commands, web requests. The safest mode. Use it when you are still learning what a session will do, or on an unfamiliar codebase. The cost is interruption: every non-trivial task becomes a series of approval dialogs.</div>
+      </div>
+      <div class="arch-layer l-core" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--amber);width:110px"><code style="font-size:11px">acceptEdits</code></div>
+        <div style="font-size:12px"><strong style="color:var(--text-hi)">Auto-approve file writes, ask for shell commands.</strong> File edits are approved silently; shell execution still prompts. The most common daily-driver mode for active coding sessions. You trust the agent to write files — you still want to see before it runs a build or a script.</div>
+      </div>
+      <div class="arch-layer l-deleg" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--green);width:110px"><code style="font-size:11px">auto</code></div>
+        <div style="font-size:12px"><strong style="color:var(--text-hi)">Approve everything except explicitly disallowed tools.</strong> No prompts. The agent works at full speed. Appropriate when you have a well-defined task, a clean worktree, and you understand the tool surface. In practice: use this with <code>--disallowedTools</code> to remove anything destructive, and you get speed without loss of safety.</div>
+      </div>
+      <div class="arch-layer l-core" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--red);width:110px"><code style="font-size:11px">dontAsk</code></div>
+        <div style="font-size:12px"><strong style="color:var(--text-hi)">Never prompt, never block.</strong> Maximum autonomy. Use in headless CI/CD pipelines where there is no human in the loop. Dangerous in interactive use — the agent will execute anything, including commands you did not expect. Pair it with tight <code>--allowedTools</code> constraints if you use it outside of CI.</div>
+      </div>
+      <div class="arch-layer l-ext" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--blue);width:110px"><code style="font-size:11px">plan</code></div>
+        <div style="font-size:12px"><strong style="color:var(--text-hi)">Read-only reasoning — no execution.</strong> Claude Code reads files, reasons, and produces a plan. It cannot write or execute. This is the mode for exploration, review, and architectural reasoning where you want the agent's analysis but not its hands on the codebase. Also useful as a dry-run before switching to <code>auto</code>.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:28px">3.3 — Tool gating with <code>--allowedTools</code> and <code>--disallowedTools</code></h3>
+    <p>Permission modes set the general policy. Tool gating lets you override that policy at the level of individual tools. The two flags are composable and apply at the CLI or in <code>.claude/settings.json</code>.</p>
+
+    <pre><code><span class="line-comment"># Read-only session: allow only file reads, block everything else</span>
+<span class="line-cmd">claude --allowedTools</span> <span class="line-arg">Read,LS,Glob,Grep</span>
+
+<span class="line-comment"># Auto mode, but never touch git or run scripts</span>
+<span class="line-cmd">claude --permission-mode auto --disallowedTools</span> <span class="line-arg">Bash,GitCommit,GitPush</span>
+
+<span class="line-comment"># CI pipeline: headless, only build and test commands permitted</span>
+<span class="line-cmd">claude --permission-mode dontAsk --allowedTools</span> <span class="line-arg">Bash,Read</span></code></pre>
+
+    <div class="callout callout-blue" style="margin-top:12px">
+      <div class="callout-label">The tool surface for pacman-cpp20</div>
+      The tools Claude Code has available fall into four categories: <strong>Read</strong> (Read, LS, Glob, Grep — no side effects), <strong>Write</strong> (Write, Edit, MultiEdit — modify files), <strong>Execute</strong> (Bash — run shell commands), and <strong>Agent</strong> (Task — spawn subagents, covered in M7). For a typical pacman-cpp20 coding session, <code>acceptEdits</code> mode covers Read + Write silently, and still asks before Bash. That is a reasonable default.
+    </div>
+
+    <h3 style="margin-top:28px">3.4 — Persisting settings in <code>.claude/settings.json</code></h3>
+    <p>CLI flags are one-shot. For persistent project defaults, set them in <code>.claude/settings.json</code> (git-committed, shared with the team) or <code>.claude/settings.local.json</code> (local override, not committed).</p>
+
+    <pre><code><span class="line-comment">// .claude/settings.json — shared project defaults</span>
+{
+  <span class="line-arg">"permissionMode"</span>: <span class="line-out">"acceptEdits"</span>,
+  <span class="line-arg">"disallowedTools"</span>: [<span class="line-out">"GitCommit"</span>, <span class="line-out">"GitPush"</span>]
+}</code></pre>
+
+    <p style="margin-top:8px">The example above sets <code>acceptEdits</code> as the default for everyone working in pacman-cpp20, and hard-blocks git commit and push at the project level. Individual developers can override locally, but the shared default prevents accidental commits from an unattended session.</p>
+
+    <div class="callout callout-red" style="margin-top:12px">
+      <div class="callout-label">The trap: permission mode is not a security boundary</div>
+      Permission modes control the <em>UX</em> of approval — how much Claude Code interrupts you. They do not sandbox the process. Claude Code runs with your user permissions. If you are running as a user who can delete system files, <code>dontAsk</code> mode with a Bash tool and a badly scoped prompt can delete system files. The safeguard is: constrain the tool surface (<code>--allowedTools</code>), scope the working directory, and never run headless on a task you have not already understood in <code>plan</code> mode.
+    </div>
+
+    <h3 style="margin-top:28px">3.5 — Headless mode for CI/CD</h3>
+    <p>Claude Code can run entirely non-interactively using <code>claude -p</code> (print mode) with <code>--permission-mode dontAsk</code>. This is how you wire it into a CI pipeline — for example, to run a code review pass on every pull request, or to auto-generate a CLAUDE.md diff after a merge.</p>
+
+    <pre><code><span class="line-comment"># CI example: read-only analysis, output to file, no prompts</span>
+<span class="line-cmd">claude -p</span> <span class="line-arg">"Read CLAUDE.md and the .ixx files. Report any stale claims."</span> \
+  <span class="line-cmd">--permission-mode dontAsk</span> \
+  <span class="line-cmd">--allowedTools</span> <span class="line-arg">Read,LS,Glob,Grep</span> \
+  <span class="line-cmd">--output-format json</span> \
+  <span class="line-cmd">&gt;</span> <span class="line-arg">audit-report.json</span></code></pre>
+
+    <p style="margin-top:8px">The <code>--output-format json</code> flag structures the response for machine consumption. Combined with <code>-p</code> and <code>dontAsk</code>, this is a fully scriptable pipeline step with zero human interaction.</p>
+
+    <h3 style="margin-top:28px">3.6 — Permission modes and the delegation tiers</h3>
+    <p>The T1–T4 tier model from your CLAUDE.md describes <em>who</em> drives the work. The permission model describes <em>how much autonomy</em> the agent has when it acts. They compose:</p>
+
+    <div style="margin-top:12px">
+      <div class="tier-row">
+        <div class="tier-num t1">T1</div>
+        <div style="font-size:12px">You are writing. Claude Code is not involved. Permission mode is irrelevant — the agent is not running.</div>
+      </div>
+      <div class="tier-row">
+        <div class="tier-num t2">T2</div>
+        <div style="font-size:12px">You are writing, agent is answering questions. Use <code>plan</code> or <code>default</code> — the agent should read, not touch.</div>
+      </div>
+      <div class="tier-row">
+        <div class="tier-num t3">T3</div>
+        <div style="font-size:12px">Agent drafts, you own. Use <code>acceptEdits</code> — writes are expected, but you review before any shell execution. This is the right mode for CLAUDE.md edits, CMake boilerplate, SDL2 wiring.</div>
+      </div>
+      <div class="tier-row">
+        <div class="tier-num t4">T4</div>
+        <div style="font-size:12px">Full delegation. Use <code>auto</code> with <code>--disallowedTools GitCommit,GitPush</code> — let it run, but keep git operations in human hands until you have reviewed the output.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:28px">3.7 — Exercises</h3>
+
+    <div class="exercise">
+      <div class="exercise-num">Exercise 03-A — Observe the permission prompt</div>
+      <p>Start a fresh Claude Code session in the pacman-cpp20 root in <code>default</code> mode (this is the default — no flag needed). Give it a task that will trigger both a file read and a shell command:</p>
+      <div class="prompt-block">Read CMakeLists.txt and CMakePresets.json. Then run the clang-ninja-debug build and report all warnings and errors.</div>
+      <p style="margin-top:10px">Watch carefully: the file reads happen silently. The permission prompt fires exactly when Claude Code wants to execute the build command. Read the prompt text. It tells you the exact command it intends to run. <strong>This is the information you need before you approve.</strong> Approve it, let the build run, observe the output.</p>
+      <p style="margin-top:8px">The goal is not the build result — it is building the habit of reading the permission prompt before approving, not reflexively hitting Enter.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 03-B — Plan mode: analysis without execution</div>
+      <p>Close the previous session. Start a new one with <code>--permission-mode plan</code>:</p>
+      <pre style="margin-top:8px"><code><span class="line-cmd">claude --permission-mode plan</span></code></pre>
+      <p style="margin-top:8px">Give it this task:</p>
+      <div class="prompt-block">Read the full source tree. Identify all the places where a hardcoded 0.016f timestep appears, and describe — without making any changes — exactly what edits would be required to replace it with real delta time passed from the game loop.</div>
+      <p style="margin-top:10px">Observe: the agent reads freely, reasons deeply, and produces a precise plan — but cannot write a single byte. This is the mode for architectural analysis. The output is a plan you can review, approve, and then hand back to the agent in a separate session with write permissions.</p>
+      <p style="margin-top:8px">Note also: this is a T1 task being analysed by the agent, not implemented. The analysis is T2 — you are driving the question, the agent is informing the answer.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 03-C — acceptEdits mode with disallowed git</div>
+      <p>Create the project-level settings file if it does not exist yet. Set the default mode and block git operations:</p>
+      <pre style="margin-top:8px"><code><span class="line-comment">// pacman-cpp20/.claude/settings.json</span>
+{
+  <span class="line-arg">"permissionMode"</span>: <span class="line-out">"acceptEdits"</span>,
+  <span class="line-arg">"disallowedTools"</span>: [<span class="line-out">"GitCommit"</span>, <span class="line-out">"GitPush"</span>]
+}</code></pre>
+      <p style="margin-top:10px">Start a new Claude Code session. Give it this task:</p>
+      <div class="prompt-block">Add a score_ member to Stage (int, default 0). Add an increment_score(int delta) method. Do not wire it to anything yet — just the declaration in the module interface and the definition in the implementation file. Show me a diff before writing.</div>
+      <p style="margin-top:10px">Observe: file writes go through without prompting (acceptEdits). If it tries to run a build, it will prompt. Git operations are blocked at the tool level — it cannot commit even if you asked it to. Review the diff before it writes. This is the T3 workflow.</p>
+      <p style="margin-top:8px">After the exercise: this change is real — <code>score_</code> is one of the two open Phase 2 items. Keep it if the diff looks right. Commit it yourself with tag <code>[T3]</code>.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 03-D — Headless one-shot</div>
+      <p>Run Claude Code in print mode with explicit tool gating, from the pacman-cpp20 root:</p>
+      <pre style="margin-top:8px"><code><span class="line-cmd">claude -p</span> <span class="line-arg">"List every .ixx file in the project, its module name as declared with the export module statement, and the modules it imports. Output as a plain table: file | module name | imports."</span> \
+  <span class="line-cmd">--permission-mode dontAsk</span> \
+  <span class="line-cmd">--allowedTools</span> <span class="line-arg">Read,LS,Glob,Grep</span></code></pre>
+      <p style="margin-top:10px">This is a pure read, no writes, no shell. <code>dontAsk</code> is safe here because the allowed tool surface is read-only by construction. The session exits when the task is done. Observe: no REPL, no prompts, output to stdout. This is the CI pattern applied interactively.</p>
+    </div>
+
+    <h3 style="margin-top:28px">3.8 — Session close: permission hygiene checklist</h3>
+    <div class="card card-green">
+      <p>After Module 3, apply this checklist to every Claude Code session you start from now on:</p>
+      <ul style="margin-top:10px">
+        <li>Know the permission mode before the session starts — never rely on the default by accident.</li>
+        <li>For exploration and review tasks: use <code>plan</code> mode. The agent cannot touch anything.</li>
+        <li>For active coding sessions (T3/T4 work): use <code>acceptEdits</code> with <code>GitCommit</code> and <code>GitPush</code> disallowed.</li>
+        <li>For fully automated tasks: use <code>auto</code> or <code>dontAsk</code> only after you have run the same task in <code>plan</code> mode and understood what it will do.</li>
+        <li><code>.claude/settings.json</code> is committed and sets safe project defaults. <code>settings.local.json</code> is for personal overrides — not committed.</li>
+        <li>Git operations stay in human hands. Always. Add <code>GitCommit</code> and <code>GitPush</code> to <code>disallowedTools</code> at the project level.</li>
+      </ul>
+    </div>
+  </section>
+
   <!-- ═══════════════════════════════════════════ PACMAN EXPANSION PLAN -->
   <section>
     <h2>Pacman-cpp20 — expansion scope</h2>
@@ -986,6 +1154,13 @@
           <td>M1 · M2</td>
           <td><span class="status-badge badge-done">Done</span></td>
           <td>M1 completed as conceptual checkpoint (install already done). M2 drift audit: fixed GameEntity composition, pacman_entity_ name, build commands (preset syntax, dual toolchain shell requirements, CMakePresets.json reference), added Current Status section. Resume: M3 — Permission model.</td>
+        </tr>
+        <tr>
+          <td class="col-session">02</td>
+          <td class="col-date">2026-05-19</td>
+          <td>M3</td>
+          <td><span class="status-badge badge-next">Active</span></td>
+          <td>M3 section drafted and added to the course file. Theory reviewed. Resume: run exercises 03-A through 03-D against the live codebase. Exercise 03-C produces real code (score_ member on Stage) — keep the output if the diff looks right.</td>
         </tr>
       </tbody>
     </table>

@@ -8,11 +8,10 @@ A fully playable Pac-Man clone built with C++20 as a deliberate learning project
 
 ## Current Status
 
-Phase 2 is near-complete. Two open items before Phase 3 can begin:
+Phase 2 is near-complete. One open item before Phase 3 can begin:
 - Replace hardcoded `0.016f` timestep in `Stage::update` with real delta time
-- Add `score_` state to `Stage` and wire pellet/super-pellet increment
 
-Phase 3 target: coroutine ghost AI. Do not start ghost implementation until the delta time and score foundation are in place.
+Phase 3 target: coroutine ghost AI. Do not start ghost implementation until the delta time foundation is in place.
 
 ## Build
 
@@ -30,6 +29,8 @@ Replace `<preset-name>` with a value from `CMakePresets.json`.
 Dependencies (SDL2 2.30.2, ImGui 1.91.9b) are fetched automatically via FetchContent. There is no test framework and no linter — MSVC `/W4 /permissive-` strict mode is the quality gate. Concept satisfaction is asserted at compile time (e.g., `static_assert(GameEntity<Pacman>)`).
 
 ## Module Graph
+
+The following graph is intentionally high-level and the authoritative reference is the `.ixx` files themselves.
 
 ```
 main.cpp
@@ -51,7 +52,7 @@ Module interface units use `.ixx`; implementation units use `.cpp`. The global m
 - `game.types` — map dimensions (`MAP_COLS=28`, `MAP_ROWS=31`, `TILE_SIZE=24`), window size constants, `PacmanDebugState`, `Dir`
 - `game.map` — 28×31 tile grid (`Wall`, `Pellet`, `SuperPellet`, `Empty`); hardcoded layout; queries by pixel or grid coords; `clear_tile()` for pellet collection
 - `game.pacman` — tile-based movement with pixel-level offset accumulator; `queued_dir_` for buffered input; U-turns allowed immediately; direction changes only at tile centers
-- `game.stage` — orchestrates Map + Pacman; pellet collection happens here when `pacman_entity_.is_at_tile_center()`
+- `game.stage` — orchestrates Map + Pacman; pellet collection and score increment happen here when `pacman_entity_.is_at_tile_center()`
 - `game.debug` — ImGui panel (toggle with `D`); shows position, velocity, AABB, minimap
 
 **main.cpp** — minimal loop: `poll_input → stage.update → stage.render`.
