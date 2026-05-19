@@ -14,6 +14,10 @@ void Stage::reset() {
     running_ = true;
 }
 
+void Stage::increment_score(int delta) {
+    score_ += delta;
+}
+
 void Stage::update(const InputState& input) {
 	if (!running_) return;
 

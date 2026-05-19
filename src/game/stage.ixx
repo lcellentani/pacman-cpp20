@@ -18,12 +18,15 @@ public:
     void update(const InputState& input);
     void render(Renderer& renderer);
     [[nodiscard]] bool is_running() const { return running_; }
+    [[nodiscard]] int score() const { return score_; }
+    void increment_score(int delta);
 
 private:
     Map map_;
 	Pacman pacman_entity_;
 
     bool running_ = false;
+    int score_ = 0;
 
     DebugView debug_;
     bool prev_debug_key_ = false;
