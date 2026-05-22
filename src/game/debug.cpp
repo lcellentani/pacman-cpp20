@@ -3,7 +3,7 @@ module;
 
 module game.debug;
 
-void DebugView::draw(const Map& map, const PacmanDebugState& pacman) {
+void DebugView::draw(const Map& map, const PacmanDebugState& pacman, GameConfig& config) {
     if (!visible_) return;
 
     ImGui::SetNextWindowPos({ WINDOW_W + 10.f, 10.f }, ImGuiCond_Once);
@@ -12,8 +12,20 @@ void DebugView::draw(const Map& map, const PacmanDebugState& pacman) {
     ImGui::Begin("Debug");
     draw_pacman_section(pacman);
     ImGui::Separator();
+    draw_tweaks_section(config);
+    ImGui::Separator();
     draw_map_section(map, pacman);
     ImGui::End();
+}
+
+void DebugView::draw_tweaks_section(GameConfig& config) {
+    if (!ImGui::CollapsingHeader("Tweaks", ImGuiTreeNodeFlags_DefaultOpen))
+        return;
+
+    ImGui::SliderFloat("Pac-Man speed", &config.pacman_speed, 50.0f, 400.0f);
+
+    if (ImGui::Button("Save as defaults"))
+        save_config(config, "config.json");
 }
 
 void DebugView::draw_pacman_section(const PacmanDebugState& pacman) {

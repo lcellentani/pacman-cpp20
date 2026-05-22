@@ -32,6 +32,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(imgui)
 
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG        v3.11.3
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
 add_library(imgui STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
@@ -58,6 +66,7 @@ target_sources(pacman
         src/main.cpp
         src/engine/input.cpp
         src/engine/renderer.cpp
+        src/game/config.cpp
         src/game/debug.cpp
         src/game/map.cpp
         src/game/pacman.cpp
@@ -67,6 +76,7 @@ target_sources(pacman
         src/engine/input.ixx
         src/engine/types.ixx
         src/game/concepts.ixx
+        src/game/config.ixx
         src/game/debug.ixx
         src/game/map.ixx
         src/game/pacman.ixx
@@ -74,7 +84,7 @@ target_sources(pacman
         src/game/types.ixx
  )
 
-target_link_libraries(pacman PRIVATE SDL2::SDL2 SDL2::SDL2main imgui)
+target_link_libraries(pacman PRIVATE SDL2::SDL2 SDL2::SDL2main imgui nlohmann_json::nlohmann_json)
 
 if(MSVC)
     # cl.exe and clang-cl: strict conformance, high warnings

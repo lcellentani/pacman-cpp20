@@ -8,10 +8,11 @@ A fully playable Pac-Man clone built with C++20 as a deliberate learning project
 
 ## Current Status
 
-Phase 2 is near-complete. One open item before Phase 3 can begin:
-- Replace hardcoded `0.016f` timestep in `Stage::update` with real delta time
+Phase 2 is complete. Phase 3 (coroutine ghost AI) is the active next target.
 
-Phase 3 target: coroutine ghost AI. Do not start ghost implementation until the delta time foundation is in place.
+Notable Phase 2 additions:
+- Real delta time via `std::chrono::steady_clock` in `main.cpp`
+- `game.config` — `GameConfig` struct with live ImGui tweaking and nlohmann/json persistence (`config.json` next to the executable)
 
 ## Build
 
@@ -26,7 +27,9 @@ cmake --build --preset <preset-name>
 
 Replace `<preset-name>` with a value from `CMakePresets.json`.
 
-Dependencies (SDL2 2.30.2, ImGui 1.91.9b) are fetched automatically via FetchContent. There is no test framework and no linter — MSVC `/W4 /permissive-` strict mode is the quality gate. Concept satisfaction is asserted at compile time (e.g., `static_assert(GameEntity<Pacman>)`).
+Dependencies (SDL2 2.30.2, ImGui 1.91.9b, nlohmann/json 3.11.3) are fetched automatically via FetchContent. There is no test framework and no linter — MSVC `/W4 /permissive-` strict mode is the quality gate. Concept satisfaction is asserted at compile time (e.g., `static_assert(GameEntity<Pacman>)`).
+
+If the Clang/Ninja build fails with "user-mapped section open" errors on `.pcm` files, the IDE has them locked — use `--clean-first` to recover.
 
 ## Module Graph
 
@@ -34,11 +37,11 @@ The following graph is intentionally high-level and the authoritative reference 
 
 ```
 main.cpp
-└── Stage ──> Renderer, InputState
+└── Stage ──> Renderer, InputState, GameConfig
          └── Map, Pacman, DebugView
 ```
 
-Module interface units use `.ixx`; implementation units use `.cpp`. The global module fragment (`module;` + `#include`) is the only place external headers (SDL2, ImGui, STL) appear.
+Module interface units use `.ixx`; implementation units use `.cpp`. The global module fragment (`module;` + `#include`) is the only place external headers appear — **`main.cpp` is not a module unit and cannot use a global module fragment**; `#include` goes directly in the file body there.
 
 ## Architecture
 
@@ -48,6 +51,7 @@ Module interface units use `.ixx`; implementation units use `.cpp`. The global m
 - `engine.types` — `AABB`, `Vec2`
 
 **game layer** — logic, no SDL details:
+- `game.config` — `GameConfig` struct (runtime-mutable values: speeds, timers); `load_config` / `save_config` using nlohmann/json exception-free API
 - `game.concepts` — `Drawable`, `Updatable`, `Collidable`, `GameEntity` (all concept-based, no virtual dispatch)
 - `game.types` — map dimensions (`MAP_COLS=28`, `MAP_ROWS=31`, `TILE_SIZE=24`), window size constants, `PacmanDebugState`, `Dir`
 - `game.map` — 28×31 tile grid (`Wall`, `Pellet`, `SuperPellet`, `Empty`); hardcoded layout; queries by pixel or grid coords; `clear_tile()` for pellet collection
@@ -77,7 +81,7 @@ All conventions are in `docs/CODING_STANDARDS.md`. Key rules:
 ## Development Phases
 
 - **Phase 1** (complete) — Modules, SDL2 window, tile map, basic Pac-Man movement
-- **Phase 2** (near-complete) — Concepts-driven entity system, pellet collection
+- **Phase 2** (complete) — Concepts-driven entity system, pellet collection, delta time, GameConfig
 - **Phase 3** (planned) — Coroutine ghost AI (Blinky, Pinky, Inky, Clyde; scatter/chase/frightened/dead states)
 - **Phase 4** (planned) — Lives, scoring with `std::format`, audio, high score persistence
 

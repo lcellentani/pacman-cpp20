@@ -3,8 +3,8 @@ module;
 
 module game.stage;
 
-Stage::Stage()
-	: map_(), pacman_entity_() {
+Stage::Stage(GameConfig config)
+	: config_(config), map_(), pacman_entity_() {
 }
 
 void Stage::reset() {
@@ -18,7 +18,7 @@ void Stage::increment_score(int delta) {
     score_ += delta;
 }
 
-void Stage::update(const InputState& input) {
+void Stage::update(const InputState& input, float dt) {
 	if (!running_) return;
 
     if (input.quit) { running_ = false; return; }
@@ -30,7 +30,8 @@ void Stage::update(const InputState& input) {
 
 	pacman_entity_.handleInput(input);
 
-	pacman_entity_.update(0.016f);
+	pacman_entity_.set_speed(config_.pacman_speed);
+	pacman_entity_.update(dt);
 
 	if (pacman_entity_.is_at_tile_center()) {
 		int pac_col = pacman_entity_.current_col();
@@ -54,7 +55,7 @@ void Stage::render(Renderer& renderer) {
 	map_.draw(renderer);
 	pacman_entity_.draw(renderer);
 
-	debug_.draw(map_, pacman_entity_.debug_state());
+	debug_.draw(map_, pacman_entity_.debug_state(), config_);
 
 	renderer.imgui_render(); // ImGui flushes
 

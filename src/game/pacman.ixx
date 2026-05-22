@@ -18,6 +18,7 @@ public:
 	void handleInput(const InputState& input);
 
 	void update(float dt);
+	void set_speed(float s) { speed_ = s; }
 
 	AABB getBounds() const;
 

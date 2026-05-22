@@ -12,7 +12,7 @@ void Pacman::reset(const Map* map) {
 	offset_ = 0;
 
 	accumulator_ = 0.0f;
-	speed_ = 40.0f;
+	speed_ = 150.0f;
 
 	current_dir_ = { 0, 0 };
 	queued_dir_ = { 0, 0 };
