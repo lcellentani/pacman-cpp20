@@ -535,8 +535,8 @@
     <div class="header-meta">
       <div class="meta-pill">Student: <strong>Ludovico Cellentani</strong></div>
       <div class="meta-pill">Started: <strong>2026-05-19</strong></div>
-      <div class="meta-pill">Current session: <strong>02</strong></div>
-      <div class="meta-pill">Next lesson: <strong>M4 · Context management</strong></div>
+      <div class="meta-pill">Current session: <strong>03</strong></div>
+      <div class="meta-pill">Next lesson: <strong>M5 · Custom commands &amp; skills</strong></div>
     </div>
   </header>
 
@@ -618,25 +618,25 @@
       </div>
 
       <!-- M4 -->
-      <div class="module-row active">
+      <div class="module-row done">
         <div class="module-num">04</div>
         <div>
           <div class="module-title">Context management — fighting entropy</div>
           <div class="module-desc"><code>/compact</code> vs <code>/clear</code>. The auto-compaction threshold (80% usage). Custom compaction instructions. Auto-memory at <code>~/.claude/projects/&lt;project&gt;/memory/</code>. CLAUDE.md as session bootstrap. How to re-establish full context in one shot after a reset.</div>
         </div>
         <div class="module-tag">Context</div>
-        <div><span class="status-badge badge-next">Next</span></div>
+        <div><span class="status-badge badge-done">Done</span></div>
       </div>
 
       <!-- M5 -->
-      <div class="module-row">
+      <div class="module-row active">
         <div class="module-num">05</div>
         <div>
           <div class="module-title">Custom commands &amp; skills</div>
           <div class="module-desc">Slash commands in <code>.claude/commands/</code> (project-scoped) and <code>~/.claude/commands/</code> (global). Parameterized commands with <code>$ARGUMENTS</code>. Skills — markdown guides that Claude invokes via natural language. Building a C++ review skill for pacman-cpp20. SKILL.md discovery.</div>
         </div>
         <div class="module-tag">Productivity</div>
-        <div><span class="status-badge badge-todo">Todo</span></div>
+        <div><span class="status-badge badge-next">Next</span></div>
       </div>
 
       <!-- M6 -->
@@ -1101,6 +1101,170 @@
     </div>
   </section>
 
+  <!-- ═══════════════════════════════════════════ MODULE 04 -->
+  <section>
+    <h2>Module 04 — Context management: fighting entropy</h2>
+
+    <div class="card card-accent">
+      <h3>Lesson goal</h3>
+      <p>By the end of this lesson you have a precise mental model of how the context window fills, how to control compaction, and how to recover a full working context after a reset in one shot. You will have experienced context pressure on a real task, used <code>/compact</code> with custom instructions, and established the CLAUDE.md bootstrap loop that makes long-lived work on pacman-cpp20 sustainable.</p>
+    </div>
+
+    <h3 style="margin-top:24px">4.1 — The context window is a shared resource</h3>
+    <p>The 200K token window is not just "how much Claude remembers." It is the working memory for <em>everything</em> — your messages, every file read, every tool output, every build log. A single flat pool shared by all of it.</p>
+    <p style="margin-top:8px">A session that reads 20 <code>.ixx</code> files, runs two builds, and receives a 3000-line compiler error has already burned 30–40K tokens before you have typed a second meaningful prompt. On a C++ project like pacman-cpp20, context pressure is routine, not exceptional.</p>
+    <p style="margin-top:8px">When the window fills, the model does not crash — it degrades. Responses get less precise. Earlier context drops. The agent starts losing architectural decisions it acknowledged an hour ago. The degradation is silent, which makes it dangerous.</p>
+
+    <div class="callout callout-blue" style="margin-top:12px">
+      <div class="callout-label">Monitoring context pressure</div>
+      Use <code>/cost</code> to see token counts. Use <code>/context</code> to visualise window fill as a percentage — more useful than raw numbers when deciding whether to compact. On a small project like pacman-cpp20, auto-compaction (80% threshold) may never fire in normal use. That does not mean context management is irrelevant — it means you need to use <code>/compact</code> proactively rather than reactively.
+    </div>
+
+    <h3 style="margin-top:28px">4.2 — <code>/compact</code> vs <code>/clear</code></h3>
+    <p>Two commands, very different semantics. The choice between them is a judgment call you make at a specific moment in a session.</p>
+
+    <div style="margin-top:14px">
+      <div class="arch-layer l-deleg" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--amber);width:100px"><code style="font-size:11px">/compact</code></div>
+        <div style="font-size:12px"><strong style="color:var(--text-hi)">Distill and continue.</strong> Replaces the full history with a model-generated summary, then keeps the session alive. You lose verbatim content but retain the shape of what happened — decisions made, current state, what is in progress. Think of it as a squash merge: the individual commits are gone, the diff is preserved. Use when there is still valuable in-session context that is not yet in CLAUDE.md.</div>
+      </div>
+      <div class="arch-layer l-core">
+        <div class="arch-label" style="color:var(--red);width:100px"><code style="font-size:11px">/clear</code></div>
+        <div style="font-size:12px"><strong style="color:var(--text-hi)">Full reset.</strong> Blank context. Nothing carries over. Use when the session has gone sideways and the accumulated context is more noise than signal, or when pivoting to a completely different task. The question to ask before choosing: <em>is there anything in this session that is not already in CLAUDE.md or the codebase?</em> If no — or if the session is corrupt — clear it.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:28px">4.3 — Auto-compaction: the 80% threshold</h3>
+    <p>Claude Code auto-compacts when the context hits 80% of the window. You do not trigger it — it fires automatically, and it does not ask you whether the summary is accurate.</p>
+    <p style="margin-top:8px">The auto-summary is optimised for breadth. It keeps the gist. What it drops: the exact error message that led to an architectural decision, the precise module interface constraint you were working around, the T1/T2 boundary call you made an hour ago. These are exactly the things that matter most on a C++ project.</p>
+
+    <div class="callout callout-amber" style="margin-top:12px">
+      <div class="callout-label">After any auto-compaction</div>
+      <ol style="padding-left:16px;margin-top:4px">
+        <li>Run <code>/context</code> to confirm it fired and see how much was recovered.</li>
+        <li>Ask Claude Code to summarise its understanding of the current state.</li>
+        <li>Compare against <code>CLAUDE.md</code>. If they diverge, correct in-session before continuing.</li>
+      </ol>
+    </div>
+
+    <h3 style="margin-top:28px">4.4 — Custom compaction instructions</h3>
+    <p>You can control what the compaction summary preserves via <code>compactCustomInstructions</code> in <code>.claude/settings.json</code>. Without it, the model decides what matters. With it, you specify what <em>you</em> need to reconstruct the session cleanly.</p>
+
+    <pre><code><span class="line-comment">// .claude/settings.json</span>
+{
+  <span class="line-arg">"permissionMode"</span>: <span class="line-out">"acceptEdits"</span>,
+  <span class="line-arg">"disallowedTools"</span>: [<span class="line-out">"GitCommit"</span>, <span class="line-out">"GitPush"</span>],
+  <span class="line-arg">"compactCustomInstructions"</span>: <span class="line-out">"Always preserve: (1) current open phase items and their status, (2) architectural decisions made this session with rationale, (3) last build result and any unresolved errors, (4) the exact module interface or function signature being worked on."</span>
+}</code></pre>
+
+    <p style="margin-top:8px">You can also pass inline compaction instructions directly in the slash command:</p>
+    <pre><code><span class="line-cmd">/compact</span> <span class="line-arg">Keep: the files and line numbers identified for the delta-time change, the proposed edit, and any build constraints noted. Discard: file listing boilerplate and raw tool output.</span></code></pre>
+    <p style="margin-top:8px">Inline instructions override the settings file for that compaction. Useful when the current task has specific things worth preserving that your general instructions do not cover.</p>
+
+    <h3 style="margin-top:28px">4.5 — Auto-memory</h3>
+    <p>Claude Code maintains a persistent memory store at <code>~/.claude/projects/&lt;project-hash&gt;/memory/</code>. Written automatically when Claude Code infers something worth persisting — project conventions learned, preferences expressed, corrections made. It survives <code>/clear</code>. It survives closing the terminal.</p>
+    <p style="margin-top:8px">This is Claude Code's memory of working with you on the project, not a file you control directly. Treat it as a <em>supplement</em> to CLAUDE.md, not a replacement. Anything critical goes in CLAUDE.md — the memory store is a convenience layer, not a reliability layer.</p>
+
+    <h3 style="margin-top:28px">4.6 — Re-establishing context after a reset</h3>
+    <p>The one-shot bootstrap pattern. When you start a fresh session or after <code>/clear</code>:</p>
+
+    <div class="prompt-block">Read CLAUDE.md. Then read the Current Status section carefully. We are working on pacman-cpp20. The open item is [specific item]. Do not read any source files yet. Confirm your understanding of the architecture and the current state before we proceed.</div>
+
+    <p style="margin-top:10px">The "confirm before reading" instruction is load-bearing. Without it, the agent will often start reading files and filling context before you have verified it understood the bootstrap. You want the mental model confirmed <em>cheaply</em> — before any file reads burn tokens.</p>
+    <p style="margin-top:8px">For pacman-cpp20 the bootstrap is fast because CLAUDE.md is dense and accurate. That is why M2 mattered — a well-maintained CLAUDE.md means a 5-second reset, not a 20-minute re-orientation.</p>
+
+    <h3 style="margin-top:28px">4.7 — Saving plans to <code>.claude/</code></h3>
+    <p>For multi-step tasks — especially T1/T2 work where you are driving the architecture — saving the plan as a file in <code>.claude/</code> before execution is a high-value habit. It gives you something concrete to review before the agent acts, a reference if the session compacts mid-task, and a record of intent if something goes wrong.</p>
+
+    <pre><code><span class="line-path">.claude/
+  settings.json          </span><span class="line-comment"># project defaults — committed</span>
+<span class="line-path">  settings.local.json    </span><span class="line-comment"># personal overrides — not committed</span>
+<span class="line-path">  plans/
+    delta-time.md        </span><span class="line-comment"># task plan saved before execution — your call on commit</span></code></pre>
+
+    <p style="margin-top:8px">The pattern: use <code>--permission-mode plan</code> to generate the plan, review it, save it, then open a new session with write permissions and hand the plan back as the task description. This keeps the planning context separate from the execution context — each session starts clean with a specific purpose.</p>
+
+    <h3 style="margin-top:28px">4.8 — The compaction/CLAUDE.md loop</h3>
+    <p>The system that makes long-lived work on a codebase sustainable:</p>
+
+    <div style="margin-top:14px">
+      <div class="arch-layer l-core" style="margin-bottom:2px;border-left:3px solid var(--amber)">
+        <div class="arch-label" style="color:var(--amber)">Start</div>
+        <div style="font-size:12px">CLAUDE.md bootstraps context. One prompt, low token cost, full architectural context loaded.</div>
+      </div>
+      <div class="arch-layer l-deleg" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--text)">Work</div>
+        <div style="font-size:12px">Session progresses. Context fills. <code>/context</code> shows pressure building.</div>
+      </div>
+      <div class="arch-layer l-ext" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--blue)">Compact</div>
+        <div style="font-size:12px"><code>/compact</code> fires (manual or auto at 80%). Session summary replaces history. Anything not captured is at risk.</div>
+      </div>
+      <div class="arch-layer l-core">
+        <div class="arch-label" style="color:var(--green)">Close</div>
+        <div style="font-size:12px">Update CLAUDE.md with anything the summary missed — architectural decisions, phase status changes, new open items. Commit. Next session bootstraps from this.</div>
+      </div>
+    </div>
+
+    <div class="callout callout-green" style="margin-top:16px">
+      <div class="callout-label">The key insight</div>
+      CLAUDE.md is the durable store. Session context is ephemeral. Auto-memory is somewhere in between. The loop only holds if you close the CLAUDE.md update step at the end of every session. The session close checklist from M1 and M2 was building toward this.
+    </div>
+
+    <h3 style="margin-top:28px">4.9 — Real example: the delta-time task</h3>
+    <p>In Session 03, the delta-time Phase 2 item was used as the exercise target. What happened in practice illustrates every concept in this module:</p>
+    <ul style="margin-top:8px">
+      <li><strong>Plan mode first.</strong> Claude Code analysed the codebase and identified the hardcoded <code>0.016f</code> timestep coupling without touching anything.</li>
+      <li><strong>Regression surfaced by reasoning.</strong> Replacing the hardcoded timestep broke Pacman's pixel velocity — the old value was implicitly "pixels per 0.016 seconds", not a real speed. Claude Code did not catch this until prompted to think through the consequences.</li>
+      <li><strong>T1 architectural push.</strong> The fix was expanded beyond a simple substitution: a <code>GameConfig</code> struct with <code>load_config</code> / <code>save_config</code>, a <code>game.config</code> module, and a DebugView Tweaks panel with live <code>SliderFloat</code> and "Save as defaults". This was your call — the agent followed.</li>
+      <li><strong>Plan saved to <code>.claude/</code> before execution.</strong> The plan was reviewed and committed as a reference before the agent wrote a single line of production code.</li>
+      <li><strong><code>/context</code> at 65%</strong> after the full task, including build and verification. Enough headroom to run <code>/compact</code> deliberately and observe the difference.</li>
+    </ul>
+    <p style="margin-top:10px">The commit closed Phase 2 entirely. Phase 3 — coroutine ghost AI — is next.</p>
+
+    <h3 style="margin-top:28px">4.10 — Exercises</h3>
+
+    <div class="exercise">
+      <div class="exercise-num">Exercise 04-A — Observe auto-compaction in the wild</div>
+      <p>Start a fresh Claude Code session in the pacman-cpp20 root. Deliberately pressure the context window:</p>
+      <div class="prompt-block">Read every .ixx file in the project. For each one, list: the module name, every type it exports, every function it exports, and every module it imports. Then read CMakeLists.txt and CMakePresets.json and summarise the build configuration. Then run the clang-ninja-debug build and report the full output.</div>
+      <p style="margin-top:10px">Monitor with <code>/context</code> periodically. On a small project, auto-compaction at 80% may not fire — that is expected. The exercise is about watching the window fill and understanding what burns tokens fastest. On a larger codebase this same pattern will trigger auto-compaction within minutes.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 04-B — <code>/compact</code> with custom instructions</div>
+      <p>Start a fresh session. Do real work: use <code>--permission-mode plan</code> and ask Claude Code to analyse a specific open task. Let it read files and produce output. Check <code>/context</code> — note the fill percentage. Then compact with explicit inline instructions:</p>
+      <pre style="margin-top:8px"><code><span class="line-cmd">/compact</span> <span class="line-arg">Keep: the exact files and line numbers identified for the task, the proposed edit, and any build or module constraints noted. Discard: file listing boilerplate and raw tool output.</span></code></pre>
+      <p style="margin-top:10px">After compaction, check <code>/context</code> again. Ask Claude Code to summarise its understanding of the task. Verify the summary matches what you told it to keep. Note what it still dropped despite the instruction — that gap is what <code>compactCustomInstructions</code> in settings is for.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 04-C — The one-shot bootstrap</div>
+      <p>Close the previous session completely (<code>/clear</code> or exit). Start a new one. Use only this prompt — no preamble, no extra context:</p>
+      <div class="prompt-block">Read CLAUDE.md. Then read the Current Status section carefully. We are working on pacman-cpp20. Do not read any source files yet. Confirm your understanding of the architecture and the current state before we proceed.</div>
+      <p style="margin-top:10px">Check <code>/context</code> after the confirmation. Compare the token cost of this bootstrap against the 04-A session. The difference is the cost of a stale or absent CLAUDE.md.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 04-D — Close the compaction/CLAUDE.md loop</div>
+      <p>After any session where meaningful work happened, ask Claude Code:</p>
+      <div class="prompt-block">Based on this session, what — if anything — should be added or updated in CLAUDE.md to make the next session's bootstrap faster or more accurate?</div>
+      <p style="margin-top:10px">Review the suggestions. Apply the ones that belong in the file — this is T1 content, you write it. Discard anything that is session-specific noise. Commit with <code>[T1]</code> tag. This step takes 2 minutes and is the difference between a codebase that gets easier to work on over time and one that resets every session.</p>
+    </div>
+
+    <h3 style="margin-top:28px">4.11 — Session close: context hygiene checklist</h3>
+    <div class="card card-green">
+      <p>After Module 4, apply this checklist before closing any Claude Code session:</p>
+      <ul style="margin-top:10px">
+        <li>Run <code>/context</code> before closing — know where the window was.</li>
+        <li>If the session compacted (auto or manual), verify the summary captured the key decisions. If not, add them to CLAUDE.md now.</li>
+        <li>Update the Current Status section in CLAUDE.md if phase state changed.</li>
+        <li>Save any task plans to <code>.claude/plans/</code> before execution — plans are cheap, re-planning is not.</li>
+        <li>The session log in this file gets a new row. One sentence. Specific enough to drop cold into the next session.</li>
+      </ul>
+    </div>
+  </section>
+
   <!-- ═══════════════════════════════════════════ PACMAN EXPANSION PLAN -->
   <section>
     <h2>Pacman-cpp20 — expansion scope</h2>
@@ -1161,6 +1325,13 @@
           <td>M3</td>
           <td><span class="status-badge badge-done">Done</span></td>
           <td>M3 theory reviewed. All four exercises completed (03-A through 03-D). Key insight: --allowedTools + plan mode composition discovered organically in 03-B. score_ Phase 2 item closed via 03-C. CLAUDE.md updated: score_ removed from open items, module graph note added, game.stage description updated. Resume: M4 — Context management.</td>
+        </tr>
+        <tr>
+          <td class="col-session">03</td>
+          <td class="col-date">2026-05-22</td>
+          <td>M4</td>
+          <td><span class="status-badge badge-done">Done</span></td>
+          <td>M4 theory and all four exercises completed. Key insights: /context command for window visualisation; plan-save-execute pattern applied to delta-time task; GameConfig / game.config module introduced as T1 architectural decision; Pacman speed regression diagnosed and fixed (150 px/s). Phase 2 fully closed. Resume: M5 — Custom commands &amp; skills.</td>
         </tr>
       </tbody>
     </table>
