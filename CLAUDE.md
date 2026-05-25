@@ -2,17 +2,35 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Before starting any session
+
+Read `docs/WORKING_AGREEMENT.md` in full before doing anything else. It contains the
+collaboration framework, delegation tiers, current phase entry conditions, architectural
+decisions with their rationale, and standing constraints. Operating without it means
+operating without the most important context in this project.
+
 ## Project Overview
 
 A fully playable Pac-Man clone built with C++20 as a deliberate learning project. Every architectural decision maps to a specific C++20 feature: **Modules** for project structure, **Concepts** for the entity system, and **Coroutines** for ghost AI (planned). The goal is code that is technically defensible and feels good to play.
 
 ## Current Status
 
-Phase 2 is complete. Phase 3 (coroutine ghost AI) is the active next target.
+_Update this section at the end of every session — 3–5 lines, present tense._
 
-Notable Phase 2 additions:
-- Real delta time via `std::chrono::steady_clock` in `main.cpp`
-- `game.config` — `GameConfig` struct with live ImGui tweaking and nlohmann/json persistence (`config.json` next to the executable)
+Phase 2 complete. Phase 3 (coroutine ghost AI) is the active next target. Tile-aligned
+movement, pellet collection, delta time, ImGui debug panel, and `game.config` with
+nlohmann/json persistence are all in place. No ghost logic yet — that is the Phase 3
+starting point.
+
+## Open Items
+
+_Update this list at the end of every session._
+
+- Ghost entities: no implementation yet — Phase 3 starting point
+- `InputPoller` refactor deferred to Phase 3; edge detection currently lives in `Stage`
+- `WallQuery`/`WorldQuery` concepts on hold until a second world query source exists
+- Ghost debug state structs: design before implementing ghost rendering (follow `PacmanDebugState` pattern)
+- Score display deferred to Phase 4 (`std::format`)
 
 ## Build
 
@@ -82,7 +100,7 @@ All conventions are in `docs/CODING_STANDARDS.md`. Key rules:
 
 - **Phase 1** (complete) — Modules, SDL2 window, tile map, basic Pac-Man movement
 - **Phase 2** (complete) — Concepts-driven entity system, pellet collection, delta time, GameConfig
-- **Phase 3** (planned) — Coroutine ghost AI (Blinky, Pinky, Inky, Clyde; scatter/chase/frightened/dead states)
+- **Phase 3** (active) — Coroutine ghost AI (Blinky, Pinky, Inky, Clyde; scatter/chase/frightened/dead states)
 - **Phase 4** (planned) — Lives, scoring with `std::format`, audio, high score persistence
 
 ## Commit Tags
@@ -93,4 +111,4 @@ Every commit is tagged to record the collaboration mode:
 - `[T3]` AI drafts, author owns (boilerplate, CMake, skeletons)
 - `[T4]` Full delegation (compiler errors, docs, repetitive patterns)
 
-Tag new commits appropriately. See `docs/PROJECT.md` for the full delegation framework.
+Tag new commits appropriately. See `docs/WORKING_AGREEMENT.md` for the full delegation framework.
