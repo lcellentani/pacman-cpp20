@@ -26,6 +26,7 @@ starting point.
 
 _Update this list at the end of every session._
 
+- `Pacman` U-turn bug: skip the pre-loop U-turn block when `offset_ == 0` (pacman.cpp:48)
 - Ghost entities: no implementation yet — Phase 3 starting point
 - `InputPoller` refactor deferred to Phase 3; edge detection currently lives in `Stage`
 - `WallQuery`/`WorldQuery` concepts on hold until a second world query source exists
@@ -94,7 +95,15 @@ All conventions are in `docs/CODING_STANDARDS.md`. Key rules:
 | Indentation | 4 spaces |
 | Max line length | 100 chars |
 
+Code review criteria: `.claude/skills/cpp-review.md`
+
 **Do not use** virtual functions or inheritance in the entity system — use Concepts. Do not use `import <...>` (angle-bracket header units) — put `#include` in the global module fragment. Do not use `auto` as a return type except for coroutines and lambdas.
+
+## Custom Commands
+
+- `/build` — run the clang-ninja-debug preset build
+- `/project_status` — report current phase, open items, and next action
+- `/cpp-review <file>` — check a file against the project's C++ review criteria
 
 ## Development Phases
 
