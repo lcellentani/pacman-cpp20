@@ -66,6 +66,3 @@ compile_commands.json
 
 # Dependencies fetched by CMake
 _deps/
-
-# Claude's files
-.claude/

@@ -1,0 +1,4 @@
+{
+    "permissionMode": "acceptEdits",
+    "disallowedTools": ["GitCommit", "GitPush"]
+}
