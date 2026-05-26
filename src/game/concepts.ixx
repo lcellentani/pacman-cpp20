@@ -19,12 +19,12 @@ concept Updatable = requires(T t, float dt) {
 
 export template<typename T>
 concept Collidable = requires(T t) {
-	{ t.getBounds() } -> std::same_as<AABB>;
+	{ t.get_bounds() } -> std::same_as<AABB>;
 };
 
 export template<typename T>
 concept Controllable = requires(T t, const InputState& input) {
-	{ t.handleInput(input) } -> std::same_as<void>;
+	{ t.handle_input(input) } -> std::same_as<void>;
 };
 
 // Composed concept — the full contract for a game entity.

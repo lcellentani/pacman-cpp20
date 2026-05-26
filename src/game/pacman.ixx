@@ -15,12 +15,12 @@ public:
 
 	void draw(Renderer& renderer);
 
-	void handleInput(const InputState& input);
+	void handle_input(const InputState& input);
 
 	void update(float dt);
 	void set_speed(float s) { speed_ = s; }
 
-	AABB getBounds() const;
+	AABB get_bounds() const;
 
 	bool is_at_tile_center() const;
 

@@ -28,7 +28,7 @@ void Stage::update(const InputState& input, float dt) {
 		debug_.toggle();
 	prev_debug_key_ = input.debug_toggle;
 
-	pacman_entity_.handleInput(input);
+	pacman_entity_.handle_input(input);
 
 	pacman_entity_.set_speed(config_.pacman_speed);
 	pacman_entity_.update(dt);

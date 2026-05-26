@@ -19,14 +19,14 @@ void Pacman::reset(const Map* map) {
 }
 
 void Pacman::draw(Renderer& renderer) {
-	const auto b = getBounds();
+	const auto b = get_bounds();
 	renderer.draw_rect(
 		{ static_cast<int>(b.x), static_cast<int>(b.y),
 		  static_cast<int>(b.width), static_cast<int>(b.height) },
 		{ 255, 255, 0 }
 	);
 }
-void Pacman::handleInput(const InputState& input) {
+void Pacman::handle_input(const InputState& input) {
 	if (input.up) {
 		queued_dir_ = { 0, -1 };
 	}
@@ -45,7 +45,7 @@ void Pacman::update(float dt) {
 	accumulator_ += speed_ * dt;
 
 	// If player wants to go exactly opposite, don't wait for the tile center.
-	if (is_opposite(queued_dir_, current_dir_)) {
+	if (offset_ > 0 && is_opposite(queued_dir_, current_dir_)) {
 		col_ += current_dir_.x;   // step into the tile we were heading toward
 		row_ += current_dir_.y;
 		current_dir_ = queued_dir_;
@@ -81,7 +81,7 @@ void Pacman::update(float dt) {
 	}
 }
 
-AABB Pacman::getBounds() const {
+AABB Pacman::get_bounds() const {
 	constexpr float margin = 2.f;
 	return { pixel_x() + margin, pixel_y() + margin, TILE_SIZE - margin * 2, TILE_SIZE - margin * 2};
 }
@@ -91,7 +91,7 @@ bool Pacman::is_at_tile_center() const {
 }
 
 PacmanDebugState Pacman::debug_state() const {
-	return { col_, row_, current_dir_.x, current_dir_.y, speed_, getBounds()};
+	return { col_, row_, current_dir_.x, current_dir_.y, speed_, get_bounds()};
 }
 
 int Pacman::pixel_x() const {
