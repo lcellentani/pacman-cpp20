@@ -1265,6 +1265,200 @@
     </div>
   </section>
 
+  <!-- ═══════════════════════════════════════════ MODULE 05 -->
+  <section>
+    <h2>Module 05 — Custom commands &amp; skills</h2>
+
+    <div class="card card-accent">
+      <h3>Lesson goal</h3>
+      <p>By the end of this module you have two things working in pacman-cpp20: a set of project-scoped slash commands that encode your most-repeated workflows, and a C++ review skill that Claude Code invokes whenever you ask it to review code. You understand the distinction between commands (invoked explicitly, procedural) and skills (invoked by natural language, declarative), and you know when to use each.</p>
+    </div>
+
+    <h3 style="margin-top:24px">5.1 — What commands are</h3>
+    <p>A custom slash command is a markdown file in <code>.claude/commands/</code>. When you type <code>/command-name</code> in a session, Claude Code reads that file and executes it as a prompt. That is the entire mechanism — no plugins, no configuration, just a file.</p>
+    <p style="margin-top:8px">The power is in what you put in the file. A good command is a distilled, reusable prompt that would otherwise take you 30 seconds to type from memory, get slightly wrong, and re-issue. Commands eliminate that friction permanently.</p>
+
+    <pre><code><span class="line-path">.claude/
+  commands/
+    build.md          </span><span class="line-comment"># /build  — run the project's standard build</span>
+<span class="line-path">    review.md         </span><span class="line-comment"># /review — trigger code review against project standards</span>
+<span class="line-path">    status.md         </span><span class="line-comment"># /status — report phase state and open items from CLAUDE.md</span></code></pre>
+
+    <p style="margin-top:8px">Commands are committed to git. Every developer on the project gets them. They are the shared vocabulary of your Claude Code workflow — the same way <code>CLAUDE.md</code> is the shared context.</p>
+
+    <h3 style="margin-top:28px">5.2 — Anatomy of a command file</h3>
+    <p>Command files are plain markdown. Claude Code reads the file content and treats it as the prompt. There is no special syntax required — but a few patterns make commands significantly more useful.</p>
+
+    <div class="card">
+      <h3>Minimal command</h3>
+      <pre style="margin-top:8px"><code><span class="line-comment"># build.md</span>
+Run the clang-ninja-debug build using the preset. Report all warnings and errors with file name and line number. If the build succeeds, confirm with the binary path.</code></pre>
+      <p style="margin-top:8px" style="color:var(--muted);font-size:12px">Invoked as <code>/build</code>. Claude Code reads the file, executes it as a prompt. The exact command it runs is determined by CLAUDE.md — which is why a well-maintained CLAUDE.md makes commands more reliable.</p>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h3>Parameterized command with <code>$ARGUMENTS</code></h3>
+      <pre style="margin-top:8px"><code><span class="line-comment"># review.md</span>
+Review the following file or module: <span class="line-arg">$ARGUMENTS</span>
+
+Apply the pacman-cpp20 review checklist (see .claude/skills/cpp-review.md).
+Report findings grouped by severity: Error, Warning, Note.</code></pre>
+      <p style="margin-top:8px" style="color:var(--muted);font-size:12px">Invoked as <code>/review src/game.stage.ixx</code>. The string after the command name is substituted for <code>$ARGUMENTS</code>. If no argument is given, Claude Code will usually ask — or you can add a fallback instruction in the file.</p>
+    </div>
+
+    <div class="callout callout-amber" style="margin-top:12px">
+      <div class="callout-label">$ARGUMENTS is positional, not named</div>
+      <code>$ARGUMENTS</code> is the entire string after the command name — one substitution, no named parameters. For simple use cases this is sufficient. If you need more complex parameterisation, encode the structure in natural language: "the first word is the module name, the rest is the task description." Claude Code will parse it correctly.
+    </div>
+
+    <h3 style="margin-top:28px">5.3 — Commands worth building for pacman-cpp20</h3>
+    <p>Three commands cover the majority of the repetitive workflow in this project:</p>
+
+    <div style="margin-top:14px">
+      <div class="card card-blue">
+        <h3><code>/build</code></h3>
+        <p>Run the standard debug build, surface all errors and warnings, confirm the binary path. You type this multiple times per session — encoding it saves nothing in keystrokes, but it ensures you always get consistent output format and never misremember the preset name.</p>
+      </div>
+
+      <div class="card card-blue" style="margin-top:8px">
+        <h3><code>/status</code></h3>
+        <p>Read CLAUDE.md, extract the Current Status section, report the current phase, all open items, and the next action. Useful at session start before you begin work, and after any compaction to verify the summary was accurate.</p>
+      </div>
+
+      <div class="card card-blue" style="margin-top:8px">
+        <h3><code>/review $ARGUMENTS</code></h3>
+        <p>Review a named file or module against the project's C++ review skill. The skill defines the criteria — the command is the trigger. Covered in depth in 5.6.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:28px">5.4 — What skills are</h3>
+    <p>A skill is a markdown file in <code>.claude/skills/</code> (or <code>.claude/</code> directly — the location is a convention, not a requirement). Unlike commands, skills are not invoked by a slash prefix. They are <em>referenced by other prompts</em> — either directly by name, or by a command that includes them.</p>
+
+    <p style="margin-top:8px">Think of a command as a function call and a skill as a library it imports. The command says "review this file." The skill says "here is what a review means in this project." Separating them means you can update the review criteria once — in the skill file — and every command that references it gets the update automatically.</p>
+
+    <div class="callout callout-blue" style="margin-top:12px">
+      <div class="callout-label">The mental model</div>
+      Commands are <em>procedural</em>: do this sequence of steps. Skills are <em>declarative</em>: here is what good looks like. A command without a skill is a shortcut. A skill without a command is documentation. Together, they are executable standards.
+    </div>
+
+    <h3 style="margin-top:28px">5.5 — Skill discovery: how Claude Code finds skills</h3>
+    <p>Claude Code does not automatically scan for skill files. A skill is active in a session when it is either:</p>
+    <ul style="margin-top:8px">
+      <li>Explicitly referenced in a command file — <code>see .claude/skills/cpp-review.md</code></li>
+      <li>Mentioned in <code>CLAUDE.md</code> — e.g. a note that a review skill exists and where it lives</li>
+      <li>Loaded by you directly — ask Claude Code to read the file at session start</li>
+    </ul>
+    <p style="margin-top:8px">The practical pattern: reference your key skills in CLAUDE.md so they are part of the session bootstrap. One line is enough: <code>Code review criteria: .claude/skills/cpp-review.md</code>. Claude Code will read it when it reads CLAUDE.md.</p>
+
+    <h3 style="margin-top:28px">5.6 — Building the C++ review skill for pacman-cpp20</h3>
+    <p>A review skill is a checklist encoded as instructions. For pacman-cpp20 the relevant criteria fall into four categories:</p>
+
+    <div class="card" style="margin-top:12px">
+      <h3>Module hygiene</h3>
+      <ul style="margin-top:6px">
+        <li>Interface units (<code>.ixx</code>) export only what downstream modules need — no implementation detail leaking through <code>export</code></li>
+        <li>Implementation units (<code>.cpp</code>) import their own module first, before all others</li>
+        <li>No circular imports — check against the module graph in CLAUDE.md</li>
+        <li>Module names match file names (<code>game.stage</code> → <code>game.stage.ixx</code>)</li>
+      </ul>
+    </div>
+
+    <div class="card" style="margin-top:8px">
+      <h3>C++20 feature use</h3>
+      <ul style="margin-top:6px">
+        <li>Concepts are constraining real template parameters — not used decoratively</li>
+        <li>Coroutines: <code>co_await</code> / <code>co_return</code> only in functions with a coroutine return type. No mixing of coroutine and non-coroutine logic in the same function</li>
+        <li>No raw owning pointers where a smart pointer or value type would do</li>
+        <li>No <code>using namespace std</code> in interface units</li>
+      </ul>
+    </div>
+
+    <div class="card" style="margin-top:8px">
+      <h3>ECS pattern compliance</h3>
+      <ul style="margin-top:6px">
+        <li>Components are data only — no logic, no virtual functions</li>
+        <li>Systems operate on components via the registry — they do not hold component state themselves</li>
+        <li>Entity IDs are not stored as raw integers outside of ECS-aware code</li>
+      </ul>
+    </div>
+
+    <div class="card" style="margin-top:8px">
+      <h3>Naming and style</h3>
+      <ul style="margin-top:6px">
+        <li>Member variables: <code>trailing_underscore_</code></li>
+        <li>Types: <code>PascalCase</code></li>
+        <li>Free functions and methods: <code>snake_case</code></li>
+        <li>No abbreviations in public API names — <code>elapsed_seconds</code> not <code>elps</code></li>
+      </ul>
+    </div>
+
+    <p style="margin-top:12px">The skill file encodes exactly these four sections as instructions. The <code>/review</code> command references it. This is T3 content — you write the criteria (that is T1: it reflects your architectural decisions), the agent applies them mechanically.</p>
+
+    <h3 style="margin-top:28px">5.7 — Commands vs skills vs CLAUDE.md — the decision matrix</h3>
+
+    <div style="margin-top:12px">
+      <div class="arch-layer l-core" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--text-hi);width:110px">CLAUDE.md</div>
+        <div style="font-size:12px">Persistent facts about the project: architecture, build system, module graph, delegation model, current phase. Things the agent needs to know at session start, every session. Not invocable — always loaded.</div>
+      </div>
+      <div class="arch-layer l-deleg" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--amber);width:110px">Commands</div>
+        <div style="font-size:12px">Repeated procedural workflows you trigger explicitly: build, review, status check. Invoked by <code>/name</code>. The prompt is the file content. Best for actions with a clear start and expected output.</div>
+      </div>
+      <div class="arch-layer l-ext" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--blue);width:110px">Skills</div>
+        <div style="font-size:12px">Standards and criteria the agent applies when doing work: what a review means, what a well-formed module looks like, what the ECS rules are. Not invoked directly — referenced by commands or loaded at session start. Best for "what good looks like" knowledge that multiple commands share.</div>
+      </div>
+    </div>
+
+    <p style="margin-top:12px">The rule of thumb: if you find yourself writing the same instruction more than once — in a command, in a prompt, in CLAUDE.md — it belongs in a skill. Extract it once, reference it everywhere.</p>
+
+    <h3 style="margin-top:28px">5.8 — Exercises</h3>
+
+    <div class="exercise">
+      <div class="exercise-num">Exercise 05-A — Build the <code>/build</code> command</div>
+      <p>Create <code>.claude/commands/build.md</code>. The file should instruct Claude Code to run the <code>clang-ninja-debug</code> preset build, report all compiler errors and warnings with file name and line number, and confirm the binary path on success. Keep it under 5 lines — precision, not verbosity.</p>
+      <p style="margin-top:10px">Start a fresh session. Type <code>/build</code>. Observe: Claude Code reads the command file and executes it as a prompt. Verify the output matches what you would have got from typing the instruction manually. Commit the file with tag <code>[T3]</code>.</p>
+      <p style="margin-top:8px">Then deliberately break a line in a source file and run <code>/build</code> again. Confirm the error output is clean and actionable. Fix the break, commit.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 05-B — Build the <code>/status</code> command</div>
+      <p>Create <code>.claude/commands/status.md</code>. The command should instruct Claude Code to read CLAUDE.md and report: current phase, open items, and the single next action. No other output.</p>
+      <p style="margin-top:10px">Run it at the start of the session, before touching any source files. Check <code>/context</code> before and after — note the token cost of a <code>/status</code> call. It should be cheap: CLAUDE.md read, one structured output, done. If it is reading source files to answer, the command is too vague — tighten it.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 05-C — Build the C++ review skill</div>
+      <p>Create <code>.claude/skills/cpp-review.md</code>. Encode the four-category checklist from section 5.6 as a set of review instructions. Write it in the imperative: "Check that interface units export only…", "Verify that components contain no logic…". Be specific enough that Claude Code produces actionable findings, not vague observations.</p>
+      <p style="margin-top:10px">Add one line to CLAUDE.md referencing the skill:</p>
+      <div class="prompt-block">Code review criteria: .claude/skills/cpp-review.md</div>
+      <p style="margin-top:10px">Start a session. Ask Claude Code to review <code>game.stage.ixx</code> using the review skill — without using a command, just natural language. Observe whether it finds the skill and applies the criteria correctly. The fact that it is in CLAUDE.md means it should be loaded already.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 05-D — Wire the <code>/review</code> command to the skill</div>
+      <p>Create <code>.claude/commands/review.md</code>. The command takes <code>$ARGUMENTS</code> as the target file or module. It should reference the review skill explicitly — include the path in the command file so it works even if CLAUDE.md has not been loaded yet.</p>
+      <pre style="margin-top:8px"><code><span class="line-comment"># review.md</span>
+Review <span class="line-arg">$ARGUMENTS</span> using the criteria in .claude/skills/cpp-review.md.
+Report findings grouped by severity: Error, Warning, Note.
+For each finding: file name, line number, the rule violated, and a one-line fix suggestion.</code></pre>
+      <p style="margin-top:10px">Run <code>/review src/game.stage.ixx</code> and <code>/review src/pacman.entity.ixx</code>. Compare the output. Are the findings consistent? Are they actionable? If a finding is vague, tighten the corresponding rule in the skill file — not the command. The command should not need to change when the standards change.</p>
+      <p style="margin-top:8px">Commit the command and any skill refinements with tag <code>[T3]</code>. Update CLAUDE.md to note that the review skill and commands exist.</p>
+    </div>
+
+    <h3 style="margin-top:28px">5.9 — Session close checklist</h3>
+    <div class="card card-green">
+      <p>After Module 5, your <code>.claude/commands/</code> directory should contain at minimum: <code>build.md</code>, <code>status.md</code>, <code>review.md</code>. Your <code>.claude/skills/</code> directory should contain: <code>cpp-review.md</code>. CLAUDE.md should reference the skill. All four files committed.</p>
+      <ul style="margin-top:10px">
+        <li>Commands encode workflow steps — they are how you invoke repeated operations without retyping prompts.</li>
+        <li>Skills encode standards — they are what the agent applies when it acts, shared across commands.</li>
+        <li>The separation keeps each file focused. Update the skill when standards change. Update the command when the workflow changes. They change for different reasons.</li>
+        <li>A command that works correctly once is not done — run it across multiple files and verify the output is consistent before committing.</li>
+      </ul>
+    </div>
+  </section>
+
   <!-- ═══════════════════════════════════════════ PACMAN EXPANSION PLAN -->
   <section>
     <h2>Pacman-cpp20 — expansion scope</h2>
@@ -1332,6 +1526,13 @@
           <td>M4</td>
           <td><span class="status-badge badge-done">Done</span></td>
           <td>M4 theory and all four exercises completed. Key insights: /context command for window visualisation; plan-save-execute pattern applied to delta-time task; GameConfig / game.config module introduced as T1 architectural decision; Pacman speed regression diagnosed and fixed (150 px/s). Phase 2 fully closed. Resume: M5 — Custom commands &amp; skills.</td>
+        </tr>
+        <tr>
+          <td class="col-session">04</td>
+          <td class="col-date">2026-05-26</td>
+          <td>M5</td>
+          <td><span class="status-badge badge-next">Next</span></td>
+          <td>M5 section authored (content only — exercises not yet run). Commands and skills treated separately. /build, /status, /review commands + cpp-review.md skill designed. Resume: execute M5 exercises in pacman-cpp20.</td>
         </tr>
       </tbody>
     </table>
