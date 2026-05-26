@@ -535,8 +535,8 @@
     <div class="header-meta">
       <div class="meta-pill">Student: <strong>Ludovico Cellentani</strong></div>
       <div class="meta-pill">Started: <strong>2026-05-19</strong></div>
-      <div class="meta-pill">Current session: <strong>03</strong></div>
-      <div class="meta-pill">Next lesson: <strong>M5 · Custom commands &amp; skills</strong></div>
+      <div class="meta-pill">Current session: <strong>04</strong></div>
+      <div class="meta-pill">Next lesson: <strong>M6 · Hooks — deterministic automation</strong></div>
     </div>
   </header>
 
@@ -629,25 +629,25 @@
       </div>
 
       <!-- M5 -->
-      <div class="module-row active">
+      <div class="module-row done">
         <div class="module-num">05</div>
         <div>
           <div class="module-title">Custom commands &amp; skills</div>
           <div class="module-desc">Slash commands in <code>.claude/commands/</code> (project-scoped) and <code>~/.claude/commands/</code> (global). Parameterized commands with <code>$ARGUMENTS</code>. Skills — markdown guides that Claude invokes via natural language. Building a C++ review skill for pacman-cpp20. SKILL.md discovery.</div>
         </div>
         <div class="module-tag">Productivity</div>
-        <div><span class="status-badge badge-next">Next</span></div>
+        <div><span class="status-badge badge-done">Done</span></div>
       </div>
 
       <!-- M6 -->
-      <div class="module-row">
+      <div class="module-row active">
         <div class="module-num">06</div>
         <div>
           <div class="module-title">Hooks — deterministic automation</div>
           <div class="module-desc">Why hooks, not prompts, for things that must always run. Lifecycle events: <code>PreToolUse</code>, <code>PostToolUse</code>, <code>PostToolUse continueOnBlock</code>. A real hook: auto-run CMake build + MSVC error parser after every file write. Hooks vs Skills vs Commands — the decision matrix.</div>
         </div>
         <div class="module-tag">Automation</div>
-        <div><span class="status-badge badge-todo">Todo</span></div>
+        <div><span class="status-badge badge-next">Next</span></div>
       </div>
 
       <!-- M7 -->
@@ -1528,11 +1528,12 @@ For each finding: file name, line number, the rule violated, and a one-line fix 
           <td>M4 theory and all four exercises completed. Key insights: /context command for window visualisation; plan-save-execute pattern applied to delta-time task; GameConfig / game.config module introduced as T1 architectural decision; Pacman speed regression diagnosed and fixed (150 px/s). Phase 2 fully closed. Resume: M5 — Custom commands &amp; skills.</td>
         </tr>
         <tr>
+        <tr>
           <td class="col-session">04</td>
           <td class="col-date">2026-05-26</td>
           <td>M5</td>
-          <td><span class="status-badge badge-next">Next</span></td>
-          <td>M5 section authored (content only — exercises not yet run). Commands and skills treated separately. /build, /status, /review commands + cpp-review.md skill designed. Resume: execute M5 exercises in pacman-cpp20.</td>
+          <td><span class="status-badge badge-done">Done</span></td>
+          <td>M5 completed. /build, /project_status, /cpp-review commands built and exercised. cpp-review.md skill authored (module hygiene, C++20 feature use, ECS compliance, naming). U-turn bug found in pacman.cpp via /cpp-review — fix pending (T1). CLAUDE.md updated: skill ref, open items, custom commands section. Resume: M6 — Hooks.</td>
         </tr>
       </tbody>
     </table>
