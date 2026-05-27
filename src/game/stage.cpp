@@ -1,5 +1,3 @@
-module;
-//#include "imgui.h"
 
 module game.stage;
 
@@ -47,8 +45,6 @@ void Stage::update(const InputState& input, float dt) {
 
 void Stage::render(Renderer& renderer) {
 	renderer.imgui_new_frame(); // ImGui frame starts
-
-	//ImGui::ShowDemoWindow();
 
     renderer.clear({ 0, 0, 0 });
 

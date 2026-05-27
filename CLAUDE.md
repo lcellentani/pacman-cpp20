@@ -17,16 +17,14 @@ A fully playable Pac-Man clone built with C++20 as a deliberate learning project
 
 _Update this section at the end of every session — 3–5 lines, present tense._
 
-Phase 2 complete. Phase 3 (coroutine ghost AI) is the active next target. Tile-aligned
-movement, pellet collection, delta time, ImGui debug panel, and `game.config` with
-nlohmann/json persistence are all in place. No ghost logic yet — that is the Phase 3
-starting point.
+Phase 2 complete. Phase 3 (coroutine ghost AI) is the active next target. Tile-aligned movement, pellet collection, delta time, ImGui debug panel, and `game.config` with nlohmann/json persistence are all in place. No ghost logic yet — that is the Phase 3 starting point.
+
+Two pre-existing compiler warnings: `-Wreorder-ctor` in `stage.cpp:5` (member init order mismatch) and `found both wmain and main` in the linker (harmless, main is used). Neither is blocking Phase 3.
 
 ## Open Items
 
 _Update this list at the end of every session._
 
-- `Pacman` U-turn bug: skip the pre-loop U-turn block when `offset_ == 0` (pacman.cpp:48)
 - Ghost entities: no implementation yet — Phase 3 starting point
 - `InputPoller` refactor deferred to Phase 3; edge detection currently lives in `Stage`
 - `WallQuery`/`WorldQuery` concepts on hold until a second world query source exists
