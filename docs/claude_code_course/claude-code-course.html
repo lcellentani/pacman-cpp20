@@ -535,8 +535,8 @@
     <div class="header-meta">
       <div class="meta-pill">Student: <strong>Ludovico Cellentani</strong></div>
       <div class="meta-pill">Started: <strong>2026-05-19</strong></div>
-      <div class="meta-pill">Current session: <strong>04</strong></div>
-      <div class="meta-pill">Next lesson: <strong>M6 · Hooks — deterministic automation</strong></div>
+      <div class="meta-pill">Current session: <strong>05</strong></div>
+      <div class="meta-pill">Next lesson: <strong>M7 · Subagents &amp; multi-agent delegation</strong></div>
     </div>
   </header>
 
@@ -640,25 +640,25 @@
       </div>
 
       <!-- M6 -->
-      <div class="module-row active">
+      <div class="module-row done">
         <div class="module-num">06</div>
         <div>
           <div class="module-title">Hooks — deterministic automation</div>
           <div class="module-desc">Why hooks, not prompts, for things that must always run. Lifecycle events: <code>PreToolUse</code>, <code>PostToolUse</code>, <code>PostToolUse continueOnBlock</code>. A real hook: auto-run CMake build + MSVC error parser after every file write. Hooks vs Skills vs Commands — the decision matrix.</div>
         </div>
         <div class="module-tag">Automation</div>
-        <div><span class="status-badge badge-next">Next</span></div>
+        <div><span class="status-badge badge-done">Done</span></div>
       </div>
 
       <!-- M7 -->
-      <div class="module-row">
+      <div class="module-row active">
         <div class="module-num">07</div>
         <div>
           <div class="module-title">Subagents &amp; multi-agent delegation</div>
           <div class="module-desc">When to spawn a subagent. Model selection per task (Haiku for exploration, Sonnet for impl, Opus for deep reasoning). Worktree isolation with <code>--worktree</code>. The <code>/batch</code> command. Agent view via <code>claude agents</code>. Practical exercise: parallel ghost AI subagents, each implementing one personality.</div>
         </div>
         <div class="module-tag">Advanced</div>
-        <div><span class="status-badge badge-todo">Todo</span></div>
+        <div><span class="status-badge badge-next">Next</span></div>
       </div>
 
       <!-- M8 -->
@@ -1459,6 +1459,216 @@ For each finding: file name, line number, the rule violated, and a one-line fix 
     </div>
   </section>
 
+  <!-- ═══════════════════════════════════════════ MODULE 06 -->
+  <section>
+    <h2>Module 06 — Hooks — deterministic automation</h2>
+
+    <div class="card card-accent">
+      <h3>Lesson goal</h3>
+      <p>By the end of this module you have a build-on-write hook active in pacman-cpp20. Every file write triggers a CMake build automatically. You understand the four lifecycle events, the difference between blocking and reacting, and when to reach for a hook instead of a command or skill. You also understand the current Claude Code bug affecting <code>PreToolUse</code> deny decisions for <code>Write</code>/<code>Edit</code> tools, and have documented it clearly for when the fix lands.</p>
+    </div>
+
+    <h3 style="margin-top:24px">6.1 — The problem hooks solve</h3>
+    <p>Skills and commands rely on the model to invoke them. The model can forget. It can skip a step if it decides the step is unnecessary. For things that <em>must always run</em> — a build after a write, a path check before a file is created — model-driven invocation is the wrong tool.</p>
+    <p>Hooks are shell commands that Claude Code runs automatically at specific points in its execution lifecycle, regardless of what the model decides. The model has no say in whether a hook fires. That is the point.</p>
+    <p>The analogy: hooks are like <code>PostBuildEvent</code> in MSBuild or a Git <code>pre-commit</code> hook. They are not suggestions. They run.</p>
+
+    <h3 style="margin-top:24px">6.2 — The hook lifecycle</h3>
+    <p>Claude Code exposes four primary lifecycle events:</p>
+    <div class="card" style="margin-top:10px">
+      <code style="color:var(--amber)">PreToolUse</code>
+      <p style="margin-top:6px;color:var(--muted);font-size:12px">Fires before a tool call executes. The hook can inspect the pending call and return a deny decision to block it. The tool never runs. Use case: block writes to protected paths, enforce naming conventions before a file is created.</p>
+    </div>
+    <div class="card">
+      <code style="color:var(--amber)">PostToolUse</code>
+      <p style="margin-top:6px;color:var(--muted);font-size:12px">Fires after a tool call completes. The hook receives the tool name, input, and output. The write already happened — you are reacting, not blocking. Use case: auto-build after a file write, run clang-format after an edit.</p>
+    </div>
+    <div class="card">
+      <code style="color:var(--amber)">Notification</code>
+      <p style="margin-top:6px;color:var(--muted);font-size:12px">Fires when Claude Code emits a notification. Use case: desktop alerts, Slack pings on long-running tasks.</p>
+    </div>
+    <div class="card">
+      <code style="color:var(--amber)">Stop</code>
+      <p style="margin-top:6px;color:var(--muted);font-size:12px">Fires when the agent finishes its turn. Use case: session-level automation — run the test suite on close, log cost, write a session summary.</p>
+    </div>
+    <p style="margin-top:10px">Key asymmetry: <code>PreToolUse</code> can <em>prevent</em>. <code>PostToolUse</code> can only <em>react</em>. Once a write has happened, the hook can tell the agent about it — but it cannot un-write the file.</p>
+
+    <h3 style="margin-top:24px">6.3 — Hook configuration</h3>
+    <p>Hooks live in <code>.claude/settings.json</code> under a <code>"hooks"</code> key, alongside <code>permissionMode</code> and <code>disallowedTools</code>:</p>
+    <pre><code>{
+  "permissionMode": "acceptEdits",
+  "disallowedTools": ["GitCommit", "GitPush"],
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/build-on-write.sh"
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+    <p><strong>matcher</strong> — a regex matched against the tool name. <code>Write|Edit|MultiEdit</code> catches every file-modifying tool. An overly broad matcher fires on reads too — match precisely.</p>
+    <p><strong>type</strong> — currently only <code>"command"</code> is supported. Relative paths resolve from the project root. For anything non-trivial, use a script file rather than an inline command.</p>
+    <p><strong>Composability</strong> — the top-level key is the lifecycle event, inside that is an array of matchers, each with its own array of hooks. Multiple hooks on the same event compose via the array. JSON does not allow duplicate keys — multiple matchers go in the array, not as separate top-level entries.</p>
+
+    <h3 style="margin-top:24px">6.4 — What the hook receives</h3>
+    <p>When <code>PostToolUse</code> fires, your script receives a JSON object on stdin. Key fields:</p>
+    <pre><code>{
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "C:\\DEV\\pacman-cpp20\\src\\game\\stage.ixx",
+    "content": "..."
+  },
+  "tool_output": "File written successfully"
+}</code></pre>
+    <p>Note: the path key is <code>file_path</code>, not <code>path</code>. On Windows, Claude Code passes the full absolute path with backslashes. Hooks that parse stdin must account for this. The <code>CLAUDE_TOOL_INPUT_FILE_PATH</code> environment variable is documented but not reliably set on Windows — parse stdin instead.</p>
+    <p>For the build hook, you can ignore stdin entirely and just run the full build. The stdin data is there when you need it.</p>
+
+    <h3 style="margin-top:24px">6.5 — The pacman-cpp20 build hook</h3>
+    <p>The script at <code>.claude/hooks/build-on-write.sh</code>:</p>
+    <pre><code>#!/usr/bin/env bash
+set -euo pipefail
+
+BUILD_PRESET="clang-ninja-debug"
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+
+cd "$PROJECT_ROOT"
+
+cmake --build --preset "$BUILD_PRESET" 2>&amp;1 | \
+  grep -E "(error|warning):" | \
+  head -40 || true</code></pre>
+    <p>Four details matter:</p>
+    <ul style="margin-top:8px">
+      <li><strong><code>set -euo pipefail</code></strong> — exits on failure, treats unset vars as errors, propagates pipe failures.</li>
+      <li><strong><code>2&gt;&amp;1</code></strong> — CMake writes errors to stderr. Without this redirect, grep never sees them.</li>
+      <li><strong><code>grep -E "(error|warning):" | head -40</code></strong> — cost control. Raw cmake output is verbose. Filter to what matters, cap the line count.</li>
+      <li><strong><code>|| true</code></strong> — when grep finds no matches (clean build), it exits 1. Without <code>|| true</code>, <code>set -e</code> kills the script silently. Clean builds should produce no output and exit 0.</li>
+    </ul>
+    <p style="margin-top:10px">On a clean incremental build, the hook produces no output — nothing recompiled, nothing to surface. This is correct and cheap. Output only appears when there is something actionable.</p>
+
+    <h3 style="margin-top:24px">6.6 — Controlling hook output and exit codes</h3>
+    <p>Hook stdout is fed back to the model as context. Every line costs tokens on every write. Keep output tight.</p>
+    <p><strong>Exit code semantics for <code>PostToolUse</code>:</strong> exit 0 = informational, agent continues. Non-zero = hook signals a problem, agent turn interrupted by default. Add <code>"continueOnBlock": true</code> to the hook entry to surface failures without interrupting the turn — useful for linters, not for build errors.</p>
+    <p><strong>Exit code semantics for <code>PreToolUse</code>:</strong> exit 0 = allow. The deny decision is carried in a JSON object on stdout, not via exit code alone:</p>
+    <pre><code>{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "reason here"
+  }
+}</code></pre>
+
+    <h3 style="margin-top:24px">6.7 — The decision matrix</h3>
+    <div style="margin-top:12px">
+      <div class="arch-layer l-core" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--text-hi);width:90px">Hook</div>
+        <div style="font-size:12px">Automatic, lifecycle-driven. <strong>Deterministic.</strong> Use when something must always happen regardless of model behaviour — build on write, path guard before create. Config: <code>settings.json</code>.</div>
+      </div>
+      <div class="arch-layer l-deleg" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--amber);width:90px">Command</div>
+        <div style="font-size:12px">Explicit invocation via <code>/name</code>. Model-dependent. Use for repeated workflows you trigger deliberately — <code>/build</code>, <code>/review</code>. Config: <code>.claude/commands/</code>.</div>
+      </div>
+      <div class="arch-layer l-ext" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--blue);width:90px">Skill</div>
+        <div style="font-size:12px">Natural language invocation. Model-dependent. Use for domain standards and criteria that should inform how the agent acts throughout a session. Config: <code>.claude/skills/</code>.</div>
+      </div>
+    </div>
+    <p style="margin-top:12px">The routing question: <em>"What happens if this doesn't run?"</em> Broken state or silent failure → hook. Wasted time retyping → command. Agent acting without the right standards → skill.</p>
+
+    <h3 style="margin-top:24px">6.8 — PreToolUse: blocking writes to protected paths</h3>
+    <p><code>PreToolUse</code> lets you enforce guardrails the permission model cannot express. The guard script for pacman-cpp20 blocks any write to a <code>.ixx</code> file outside <code>src/</code>:</p>
+    <pre><code>#!/usr/bin/env bash
+# .claude/hooks/guard-module-writes.sh
+
+INPUT=$(cat)
+FILE_PATH=$(echo "$INPUT" | python -c "
+import sys, json
+d = json.load(sys.stdin)
+path = d.get('tool_input', {}).get('file_path', '')
+print(path)
+")
+
+NORMALIZED=$(echo "$FILE_PATH" | tr '\\' '/')
+
+if [[ "$NORMALIZED" == *.ixx &amp;&amp; "$NORMALIZED" != */src/* ]]; then
+  echo '{
+    "hookSpecificOutput": {
+      "hookEventName": "PreToolUse",
+      "permissionDecision": "deny",
+      "permissionDecisionReason": ".ixx files must live in src/. Got: '"$FILE_PATH"'"
+    }
+  }'
+  exit 0
+fi
+
+exit 0</code></pre>
+    <div class="callout callout-red" style="margin-top:12px">
+      <div class="callout-label">Known bug — Claude Code issue #37210</div>
+      <code>permissionDecision: "deny"</code> is honoured for <code>Bash</code> tool calls but silently ignored for <code>Edit</code> and <code>Write</code> — the file is modified anyway. Filed March 2026, open. The script is correct and committed; re-enable in <code>settings.json</code> once the fix lands. For blanket tool bans, use <code>disallowedTools</code> instead — that path is reliable.
+    </div>
+
+    <h3 style="margin-top:28px">6.9 — Exercises</h3>
+
+    <div class="exercise">
+      <div class="exercise-num">Exercise 06-A — Observe the hook lifecycle manually</div>
+      <p>Before writing a single hook, observe what Claude Code exposes. Start a session. Ask it to make a trivial edit — add a blank line at the end of any <code>.ixx</code> file. Watch the tool call sequence in the output.</p>
+      <p style="margin-top:10px">Then ask: <em>"What tools did you just call, in order? What information was available at each step?"</em></p>
+      <p style="margin-top:10px">Goal: build a precise mental model of the execution sequence before wiring anything to it. Undo the trivial edit with <code>git checkout</code>. Nothing from this exercise should persist.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 06-B — Build-on-write hook</div>
+      <p>Create <code>.claude/hooks/build-on-write.sh</code> using the script from section 6.5. Make it executable (<code>chmod +x</code>). Add the <code>PostToolUse</code> hook entry to <code>.claude/settings.json</code> — merge with existing entries, do not overwrite.</p>
+      <p style="margin-top:10px">Test manually first: <code>bash .claude/hooks/build-on-write.sh</code>. Confirm exit 0 and expected output. Then ask Claude Code to make a real edit — add a <code>[[nodiscard]]</code> attribute to a method. Observe: build fires automatically, output surfaces in the same turn.</p>
+      <p style="margin-top:10px">Check token cost with <code>/cost</code> before and after. The filtered output should be cheap. If it is not, tighten the grep filter.</p>
+      <p style="margin-top:10px">Commit hook script and updated settings with tag <code>[T3]</code>. Add a <code>## Hooks</code> section to CLAUDE.md documenting what is active.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 06-C — PreToolUse path guard</div>
+      <p>Create <code>.claude/hooks/guard-module-writes.sh</code> using the script from section 6.8. Make it executable. Add the <code>PreToolUse</code> entry to <code>settings.json</code>.</p>
+      <p style="margin-top:10px">Test manually with fake stdin before wiring:</p>
+      <pre style="margin-top:8px"><code><span class="line-comment"># Should pass — valid path</span>
+echo '{"tool_name":"Write","tool_input":{"file_path":"/project/src/test.ixx"}}' | bash .claude/hooks/guard-module-writes.sh
+echo "Exit: $?"
+
+<span class="line-comment"># Should deny — invalid path</span>
+echo '{"tool_name":"Write","tool_input":{"file_path":"/project/modules/test.ixx"}}' | bash .claude/hooks/guard-module-writes.sh
+echo "Exit: $?"</code></pre>
+      <p style="margin-top:10px">Attempt the live test — ask Claude Code to create <code>modules/test.ixx</code>. Due to bug #37210 the deny will currently be ignored for <code>Write</code>/<code>Edit</code>. Document this in CLAUDE.md and leave the script committed but the hook commented out in settings until the fix lands.</p>
+      <p style="margin-top:8px">Commit with tag <code>[T3]</code>.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 06-D — The decision matrix in practice</div>
+      <p>No new code. For each scenario below, decide which mechanism handles it — Hook, Command, or Skill — and write one sentence explaining why the others do not fit:</p>
+      <ol style="margin-top:8px;padding-left:20px">
+        <li>You want the agent to always check that a new exported type follows the <code>PascalCase</code> naming convention.</li>
+        <li>You want to run the full test suite at the end of every session, but only when you explicitly ask.</li>
+        <li>You want to prevent the agent from ever calling <code>git push</code> without your review, even in <code>auto</code> mode.</li>
+        <li>You want the agent to apply the four-category C++ review checklist whenever you say "review this."</li>
+      </ol>
+      <p style="margin-top:10px">Answers: (1) Skill — requires judgement across the session, not a single event reaction. (2) Stop hook — fires at end of turn, no explicit invocation needed. (3) <code>disallowedTools</code> — not a hook; a blanket ban is more direct and reliable than a conditional PreToolUse guard. (4) Command — explicit invocation, references the cpp-review skill.</p>
+    </div>
+
+    <h3 style="margin-top:28px">6.10 — Session close checklist</h3>
+    <div class="card card-green">
+      <p>After Module 6, <code>.claude/hooks/</code> should contain: <code>build-on-write.sh</code> (active), <code>guard-module-writes.sh</code> (committed, disabled pending bug fix). CLAUDE.md <code>## Hooks</code> section documents both, including the known limitation note with the issue number.</p>
+      <ul style="margin-top:10px">
+        <li>Hooks are deterministic — they fire regardless of model behaviour. That is their value and their cost. Keep them fast and filtered.</li>
+        <li>The incremental build cache means the hook often produces no output. That is correct — silence on a clean build is the goal, not a sign the hook failed.</li>
+        <li>Close open <code>.ixx</code> files in the IDE before running Claude Code sessions — the PCM lock error will cause the build hook to fail until files are released.</li>
+        <li>When the PreToolUse deny bug is fixed, re-enable the guard hook in settings with one line change.</li>
+      </ul>
+    </div>
+  </section>
+
   <!-- ═══════════════════════════════════════════ PACMAN EXPANSION PLAN -->
   <section>
     <h2>Pacman-cpp20 — expansion scope</h2>
@@ -1528,12 +1738,18 @@ For each finding: file name, line number, the rule violated, and a one-line fix 
           <td>M4 theory and all four exercises completed. Key insights: /context command for window visualisation; plan-save-execute pattern applied to delta-time task; GameConfig / game.config module introduced as T1 architectural decision; Pacman speed regression diagnosed and fixed (150 px/s). Phase 2 fully closed. Resume: M5 — Custom commands &amp; skills.</td>
         </tr>
         <tr>
-        <tr>
           <td class="col-session">04</td>
           <td class="col-date">2026-05-26</td>
           <td>M5</td>
           <td><span class="status-badge badge-done">Done</span></td>
           <td>M5 completed. /build, /project_status, /cpp-review commands built and exercised. cpp-review.md skill authored (module hygiene, C++20 feature use, ECS compliance, naming). U-turn bug found in pacman.cpp via /cpp-review — fix pending (T1). CLAUDE.md updated: skill ref, open items, custom commands section. Resume: M6 — Hooks.</td>
+        </tr>
+        <tr>
+          <td class="col-session">05</td>
+          <td class="col-date">2026-05-27</td>
+          <td>M6</td>
+          <td><span class="status-badge badge-done">Done</span></td>
+          <td>M6 completed. build-on-write PostToolUse hook active and working. PreToolUse path guard script correct but disabled — Claude Code bug #37210 (permissionDecision: "deny" ignored for Write/Edit tools, filed March 2026, open). Diagnosed all the way to upstream: wrong JSON key (file_path not path), Windows path separators, environment variable not set on Windows. CLAUDE.md Hooks section added with known limitation note. Resume: M7 — Subagents.</td>
         </tr>
       </tbody>
     </table>
