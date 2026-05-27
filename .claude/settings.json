@@ -2,17 +2,6 @@
   "permissionMode": "acceptEdits",
   "disallowedTools": ["GitCommit", "GitPush"],
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": ".claude/hooks/guard-module-writes.sh"
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit|MultiEdit",
