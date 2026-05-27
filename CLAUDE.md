@@ -103,6 +103,20 @@ Code review criteria: `.claude/skills/cpp-review.md`
 - `/project_status` — report current phase, open items, and next action
 - `/cpp-review <file>` — check a file against the project's C++ review criteria
 
+## Hooks
+
+Configured in `.claude/settings.json`; scripts live in `.claude/hooks/`.
+
+| Event | Trigger | Script | Effect |
+|---|---|---|---|
+| `PostToolUse` | `Write`, `Edit`, `MultiEdit` | `build-on-write.sh` | Runs `cmake --build --preset clang-ninja-debug`; filters output to `error:`/`warning:` lines (max 40) and feeds them back to Claude |
+| `PreToolUse` | `Write`, `Edit`, `MultiEdit` | `guard-module-writes.sh` | **Inactive — see note below.** designed to deny writes to `.ixx` files outside `src/`, enforcing the module layout constraint |
+
+`build-on-write.sh` means Claude sees compiler diagnostics immediately after every file write and can self-correct without an explicit `/build` round-trip.
+
+> **Known limitation — `guard-module-writes.sh` is not active.**
+> The script is wired to a `PreToolUse` event with `permissionDecision: "deny"`, but this is blocked by Claude Code bug [#37210](https://github.com/anthropics/claude-code/issues/37210) (filed March 2026, still open): `permissionDecision: "deny"` is honoured for `Bash` tool calls but **silently ignored for `Edit` and `Write`** — the file is modified anyway. The hook script exists and is correct; re-enable it in `settings.json` once the bug is resolved.
+
 ## Development Phases
 
 - **Phase 1** (complete) — Modules, SDL2 window, tile map, basic Pac-Man movement
