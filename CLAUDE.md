@@ -31,6 +31,53 @@ _Update this list at the end of every session._
 - Ghost debug state structs: design before implementing ghost rendering (follow `PacmanDebugState` pattern)
 - Score display deferred to Phase 4 (`std::format`)
 
+## Phase 3 Context
+
+Reference findings from codebase archaeology before starting ghost AI work.
+
+### Module graph (verified)
+
+```
+main.cpp
+└── import game.stage
+         ├── engine.renderer
+         ├── engine.input
+         ├── game.concepts
+         ├── game.config
+         ├── game.debug
+         ├── game.map
+         └── game.pacman
+```
+
+`main.cpp` is the only consumer of `game.stage`. Ghost modules (`game.ghost` or similar) will be added as imports inside `stage.ixx`, not in `main.cpp`.
+
+### SDL boundary (verified)
+
+SDL calls are fully contained in the `engine` layer:
+- `src/engine/renderer.cpp` — init, window, renderer, draw calls, present
+- `src/engine/input.cpp` — `SDL_PollEvent`, `SDL_GetKeyboardState`
+- `src/engine/renderer.ixx` — `SDL_Window*`, `SDL_Renderer*` member declarations
+
+No SDL symbols appear in any `game.*` module. Ghost implementation must stay on the game side of this boundary.
+
+### Concept system (verified)
+
+All concepts defined in `src/game/concepts.ixx`:
+
+| Concept | Requires |
+|---|---|
+| `Drawable<T>` | `t.draw(r) -> void` |
+| `Updatable<T>` | `t.update(dt) -> void` |
+| `Collidable<T>` | `t.get_bounds() -> AABB` |
+| `Controllable<T>` | `t.handle_input(input) -> void` |
+| `GameEntity<T>` | `Drawable && Updatable && Collidable` (composed) |
+
+Ghost types must satisfy `GameEntity`. Add a `static_assert(GameEntity<Ghost>, ...)` in the ghost module interface, following the pattern at `src/game/pacman.ixx:52`.
+
+### Debug state pattern
+
+Follow `PacmanDebugState` (defined in `game.types`) when designing ghost debug structs. Design the ghost debug state struct before implementing ghost rendering — this is an open item.
+
 ## Build
 
 Toolchain-specific shell requirements:
