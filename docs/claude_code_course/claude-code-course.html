@@ -535,8 +535,8 @@
     <div class="header-meta">
       <div class="meta-pill">Student: <strong>Ludovico Cellentani</strong></div>
       <div class="meta-pill">Started: <strong>2026-05-19</strong></div>
-      <div class="meta-pill">Current session: <strong>05</strong></div>
-      <div class="meta-pill">Next lesson: <strong>M7 · Subagents &amp; multi-agent delegation</strong></div>
+      <div class="meta-pill">Current session: <strong>06</strong></div>
+      <div class="meta-pill">Next lesson: <strong>M8 · MCP — extending the tool surface</strong></div>
     </div>
   </header>
 
@@ -651,25 +651,25 @@
       </div>
 
       <!-- M7 -->
-      <div class="module-row active">
+      <div class="module-row done">
         <div class="module-num">07</div>
         <div>
           <div class="module-title">Subagents &amp; multi-agent delegation</div>
-          <div class="module-desc">When to spawn a subagent. Model selection per task (Haiku for exploration, Sonnet for impl, Opus for deep reasoning). Worktree isolation with <code>--worktree</code>. The <code>/batch</code> command. Agent view via <code>claude agents</code>. Practical exercise: parallel ghost AI subagents, each implementing one personality.</div>
+          <div class="module-desc">When to spawn a subagent. The three built-in types (Explore, Plan, General-purpose). Custom subagents: <code>.claude/agents/*.md</code> with YAML frontmatter. Model selection per agent. Tool scoping. Explicit invocation via <code>@agent-name</code>. Parallel vs sequential dispatch. Practical exercise: a read-only codebase-scout subagent for pacman-cpp20.</div>
         </div>
         <div class="module-tag">Advanced</div>
-        <div><span class="status-badge badge-next">Next</span></div>
+        <div><span class="status-badge badge-done">Done</span></div>
       </div>
 
       <!-- M8 -->
-      <div class="module-row">
+      <div class="module-row active">
         <div class="module-num">08</div>
         <div>
           <div class="module-title">MCP — extending the tool surface</div>
           <div class="module-desc">The Model Context Protocol in one page. Adding servers: <code>claude mcp add</code>, scopes (<code>--scope project/local/global</code>), <code>.mcp.json</code>. Token limits and <code>MAX_MCP_OUTPUT_TOKENS</code>. OAuth vs credential-based servers. Practical: connect a GitHub MCP server to wire pacman-cpp20 issues directly into the session.</div>
         </div>
         <div class="module-tag">Integration</div>
-        <div><span class="status-badge badge-todo">Todo</span></div>
+        <div><span class="status-badge badge-next">Next</span></div>
       </div>
 
       <!-- M9 -->
@@ -1669,6 +1669,214 @@ echo "Exit: $?"</code></pre>
     </div>
   </section>
 
+  <!-- ═══════════════════════════════════════════ MODULE 07 -->
+  <section>
+    <h2>Module 07 — Subagents &amp; multi-agent delegation</h2>
+
+    <div class="card card-accent">
+      <h3>Lesson goal</h3>
+      <p>By the end of this module you have a custom subagent definition committed to pacman-cpp20 and a clear mental model for when delegation saves you — and when it does not. You understand the difference between built-in and custom subagents, how tool scoping and model selection work in frontmatter, and how to invoke agents explicitly with <code>@agent-name</code>. You have applied the pattern to a concrete codebase-scout task before touching any T1 work.</p>
+    </div>
+
+    <h3 style="margin-top:24px">7.1 — The problem subagents solve</h3>
+    <p>Every file read, every tool output, every build log fills the same 200K context window. A session that explores 30 source files before finding the right one has burned 15–20K tokens on navigation noise — tokens that are now permanently part of the session history and priced on every subsequent turn.</p>
+    <p style="margin-top:8px">Subagents are isolated Claude sessions you spawn from the main session. They have their own context window, their own tool set, their own model. The main session delegates a bounded task, the subagent runs to completion, and only the summary returns. The exploration noise never enters your main window.</p>
+    <p style="margin-top:8px">The analogy from engine work: spawning a subagent is like forking a background thread with a narrow job description and a callback. The main thread stays clean. The fork does the dirty work and reports back.</p>
+
+    <div class="callout callout-amber" style="margin-top:12px">
+      <div class="callout-label">When to delegate — and when not to</div>
+      <p>Delegate when: (1) the task produces verbose output the main session does not need to remember verbatim, (2) the task is a side query that would inflate context before the real work starts, (3) multiple independent tasks can run in parallel. Do not delegate when: the task is small (a direct tool call is cheaper), the subagent result needs tight integration with ongoing context, or the task is T1/T2 work where you need to read the output live.</p>
+    </div>
+
+    <h3 style="margin-top:28px">7.2 — The three built-in subagent types</h3>
+    <p>Claude Code ships three built-in subagents. You rarely invoke them explicitly — the main agent routes to them automatically based on task characteristics. Understanding what they are tells you what Claude is doing when it spawns them.</p>
+
+    <div class="card" style="margin-top:10px">
+      <code style="color:var(--amber)">Explore</code>
+      <p style="margin-top:6px;color:var(--muted);font-size:12px">Read-only. Runs on Haiku by default — fast, cheap, disposable. Used for codebase search and discovery: "which files touch the ECS registry?", "where is the ghost AI state machine?". The result is a concise summary. The file reads never enter the main context.</p>
+    </div>
+    <div class="card">
+      <code style="color:var(--amber)">Plan</code>
+      <p style="margin-top:6px;color:var(--muted);font-size:12px">Gathers context before presenting a strategy in plan mode. Fired automatically when the main agent enters plan-before-execute mode and needs to read supporting files first.</p>
+    </div>
+    <div class="card">
+      <code style="color:var(--amber)">General-purpose</code>
+      <p style="margin-top:6px;color:var(--muted);font-size:12px">Read and write. The default when a task involves both exploration and modification. Used for self-contained delegated tasks: "add a unit test for this function", "update the CHANGELOG".</p>
+    </div>
+    <p style="margin-top:10px">The auto-selection is imperfect. A task that sounds read-only may get routed to general-purpose. Explicit invocation via <code>@agent-name</code> or a custom subagent definition gives you precise control.</p>
+
+    <h3 style="margin-top:28px">7.3 — Custom subagents: the <code>.claude/agents/</code> contract</h3>
+    <p>Custom subagents are Markdown files with YAML frontmatter. The frontmatter is the configuration; the Markdown body is the system prompt.</p>
+
+    <pre><code><span class="line-comment"># .claude/agents/cpp-scout.md</span>
+---
+name: cpp-scout
+description: >
+  Read-only codebase scout for pacman-cpp20. Use this agent when you need
+  to search for symbol definitions, trace module dependencies, or find all
+  sites where a specific type or function is used — without making any edits.
+  Do not use for tasks that require writing files.
+tools: Read, Grep, Glob, LS
+model: claude-haiku-4-5-20251001
+---
+
+You are a read-only scout for the pacman-cpp20 codebase.
+
+Your job: find and report. Never write, edit, or delete files.
+
+When searching for a symbol, check .ixx interface units first, then .cpp
+implementation files. Report: file path, line number, the relevant snippet
+(3 lines of context max), and one sentence on what you found. Stop when you
+have a complete answer. Do not include raw file dumps.
+</code></pre>
+
+    <p style="margin-top:10px">Key decisions in this definition:</p>
+    <ul style="margin-top:6px">
+      <li><strong>tools</strong> — scoped to read-only tools only. A scout that can write is not a scout.</li>
+      <li><strong>model</strong> — Haiku for search tasks. The cost differential over Sonnet is 10–20x; use it.</li>
+      <li><strong>description</strong> — this is how the main agent decides to invoke the subagent automatically. Write it as trigger conditions, not just a label. "Use this agent when…" is the right register.</li>
+    </ul>
+
+    <h3 style="margin-top:28px">7.4 — Scope and discovery</h3>
+    <p>Two scopes, same pattern:</p>
+
+    <div style="margin-top:14px">
+      <div class="arch-layer l-deleg" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--amber);width:120px">Project scope</div>
+        <div style="font-size:12px"><code>.claude/agents/&lt;name&gt;.md</code> — committed to the repo, shared with the team, versioned with the codebase. The right place for project-specific scouts and review agents.</div>
+      </div>
+      <div class="arch-layer l-core">
+        <div class="arch-label" style="color:var(--text-hi);width:120px">User scope</div>
+        <div style="font-size:12px"><code>~/.claude/agents/&lt;name&gt;.md</code> — personal, applies across all your projects. The right place for general-purpose helpers that are not project-specific.</div>
+      </div>
+    </div>
+
+    <p style="margin-top:12px">Claude Code reads both on startup and merges them. Project-scope definitions override user-scope on name collision.</p>
+
+    <h3 style="margin-top:28px">7.5 — Invocation</h3>
+    <p>Three ways to invoke a subagent:</p>
+
+    <div class="card" style="margin-top:10px">
+      <p><strong style="color:var(--text-hi)">Automatic.</strong> The main agent reads all agent descriptions at session start and routes to the right one based on the task. If your description is precise and the task matches, this just works. If the wrong agent fires — or none fires — use explicit invocation.</p>
+    </div>
+    <div class="card">
+      <p><strong style="color:var(--text-hi)">Explicit in-session.</strong> Type <code>@cpp-scout find all call sites of Registry::create_entity</code> in the REPL. The <code>@</code> prefix targets the named agent directly, bypassing automatic routing.</p>
+    </div>
+    <div class="card">
+      <p><strong style="color:var(--text-hi)">Prompt delegation.</strong> Inside a prompt: "Use the cpp-scout agent to locate all places where <code>PacmanComponent</code> is accessed, then use those results to…". The main agent spawns the subagent, waits for the result, and continues with the summary.</p>
+    </div>
+
+    <h3 style="margin-top:28px">7.6 — Parallel dispatch</h3>
+    <p>The highest-leverage subagent pattern: independent tasks that would be slow sequentially. The main agent can spawn multiple subagents concurrently; they run in parallel and the parent waits for all results before continuing.</p>
+
+    <div class="prompt-block">Use the cpp-scout agent in parallel to: (1) find all modules that import game.stage, (2) find all types that implement the Renderable concept, (3) find all locations where SDL_RenderFillRect is called. Report the three results together.</div>
+
+    <p style="margin-top:10px">Three separate file searches, each with noisy output, running concurrently. The main context receives three clean summaries. Without delegation, this would be one sequential search and the raw output of each grep would fill the window.</p>
+
+    <div class="callout callout-blue" style="margin-top:12px">
+      <div class="callout-label">Token cost reality check</div>
+      Each subagent runs on its own context. Parallel subagents multiply token consumption proportionally — three concurrent Haiku scouts cost approximately three times a single scout. At Haiku pricing this is still cheap, but worth tracking with <code>/usage</code> after your first parallel dispatch to calibrate your intuition.
+    </div>
+
+    <h3 style="margin-top:28px">7.7 — Frontmatter reference</h3>
+    <p>Complete list of supported frontmatter fields:</p>
+
+    <pre><code>---
+name: my-agent              <span class="line-comment"># identifier used by @invocation</span>
+description: >              <span class="line-comment"># trigger description — write as conditions</span>
+  Use when...
+tools:                      <span class="line-comment"># allowlist — omit to inherit parent's full set</span>
+  - Read
+  - Grep
+  - Glob
+  - LS
+  - Bash                    <span class="line-comment"># include only if the agent needs to execute</span>
+  - Write                   <span class="line-comment"># include only if the agent needs to write</span>
+disallowedTools:            <span class="line-comment"># explicit denylist — alternative to allowlist</span>
+  - Write
+  - Edit
+model: claude-haiku-4-5-20251001   <span class="line-comment"># override model — default inherits parent</span>
+permissionMode: default     <span class="line-comment"># default | acceptEdits | auto</span>
+maxTurns: 10                <span class="line-comment"># cap agent turns — prevent runaway agents</span>
+---</code></pre>
+
+    <p style="margin-top:8px">Use <code>tools</code> (allowlist) when you want a tightly scoped agent. Use <code>disallowedTools</code> when you want to inherit most capabilities but block specific ones. Use <code>maxTurns</code> for exploration agents where an unbounded run is a bug, not a feature.</p>
+
+    <h3 style="margin-top:28px">7.8 — Subagents vs skills vs commands — completing the decision matrix</h3>
+
+    <div style="margin-top:12px">
+      <div class="arch-layer l-core" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--text-hi);width:120px">CLAUDE.md</div>
+        <div style="font-size:12px">Always-loaded facts. Architecture, build system, delegation model. Not invocable.</div>
+      </div>
+      <div class="arch-layer l-deleg" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--amber);width:120px">Commands</div>
+        <div style="font-size:12px">Explicit procedural workflows. <code>/build</code>, <code>/review target.ixx</code>. Main agent runs them in the main context.</div>
+      </div>
+      <div class="arch-layer l-ext" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--blue);width:120px">Skills</div>
+        <div style="font-size:12px">Standards and criteria. What a good module looks like, ECS rules, naming conventions. Referenced by commands, not executed independently.</div>
+      </div>
+      <div class="arch-layer l-ext" style="margin-bottom:2px">
+        <div class="arch-label" style="color:var(--green);width:120px">Subagents</div>
+        <div style="font-size:12px">Isolated workers. Bounded tasks with noisy intermediate output you do not want in the main context. Especially: exploration, parallel search, self-contained edits with no main-context dependencies.</div>
+      </div>
+    </div>
+
+    <p style="margin-top:12px">The test: does the task produce output your main session needs to remember in detail? If yes — keep it in the main context. If no — delegate.</p>
+
+    <h3 style="margin-top:28px">7.9 — Exercises</h3>
+
+    <div class="exercise">
+      <div class="exercise-num">Exercise 07-A — Define the cpp-scout subagent</div>
+      <p>Create <code>.claude/agents/cpp-scout.md</code> using the template from section 7.3. Adapt the system prompt to reflect the actual pacman-cpp20 module structure — reference the <code>.ixx</code> convention and the ECS registry pattern by name. Set the model to Haiku. Allow only <code>Read</code>, <code>Grep</code>, <code>Glob</code>, <code>LS</code>. Set <code>maxTurns: 12</code>.</p>
+      <p style="margin-top:10px">Commit the file with tag <code>[T3]</code>. This is infrastructure — you are defining the agent's job description, not implementing logic.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 07-B — First invocation</div>
+      <p>Start a fresh Claude Code session. Check <code>/usage</code> at the baseline. Then invoke explicitly:</p>
+      <div class="prompt-block">@cpp-scout Find all modules that import game.stage. List the module name and the specific import declaration.</div>
+      <p style="margin-top:10px">Check <code>/usage</code> after. Note the token delta. The main context should have grown by the summary only — not by the raw file reads the scout performed. If the main context shows raw grep output, your system prompt is not constraining output correctly — tighten it.</p>
+      <p style="margin-top:8px">Compare: run the same search manually (ask Claude to grep directly in the main session) and note the cost difference. That delta is the argument for delegation.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 07-C — Parallel dispatch</div>
+      <p>In a single prompt, ask the main agent to dispatch the cpp-scout in parallel for three independent queries:</p>
+      <ol style="margin-top:8px;padding-left:20px">
+        <li>All types that satisfy the <code>Renderable</code> concept</li>
+        <li>All call sites of <code>update(float dt)</code> across the codebase</li>
+        <li>The complete module import graph for <code>game.stage</code> (direct imports only)</li>
+      </ol>
+      <p style="margin-top:10px">Observe whether the three searches run concurrently (you should see multiple agent traces in the session output). If they run sequentially, the prompt did not communicate the parallelism intent — revise with explicit "in parallel" language.</p>
+      <p style="margin-top:8px">The results feed the Phase 3 coroutine ghost AI work. Record any findings worth preserving in CLAUDE.md under a new <code>## Phase 3 context</code> section.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 07-D — The delegation decision in practice</div>
+      <p>No new code. For each scenario below, decide: main context, subagent, or neither. Write one sentence justifying each:</p>
+      <ol style="margin-top:8px;padding-left:20px">
+        <li>You want to grep for all uses of a deprecated API across 40 source files before starting a refactor.</li>
+        <li>You are writing a coroutine awaitable and want the agent to answer "does this return type satisfy the Awaitable concept?" mid-implementation.</li>
+        <li>You want to update all 15 <code>CMakeLists.txt</code> fragments that reference a renamed module — no dependency between the edits.</li>
+        <li>You want the agent to read the latest CHANGELOG entry and tell you what changed.</li>
+      </ol>
+      <p style="margin-top:10px">Answers: (1) Subagent — 40 files of grep output is noise, only the summary matters. (2) Main context — tight coupling to live T2 work; the answer must integrate with what you are typing. (3) Subagent — 15 independent edits, no coordination needed between them; general-purpose agent is appropriate. (4) Main context (or neither) — one small file read; spawning a subagent for this is overhead with no benefit.</p>
+    </div>
+
+    <h3 style="margin-top:28px">7.10 — Session close checklist</h3>
+    <div class="card card-green">
+      <p>After Module 7, <code>.claude/agents/</code> should contain at minimum <code>cpp-scout.md</code>. CLAUDE.md should note the scout agent exists and what it is for. Phase 3 context section added if exercise 07-C produced useful findings.</p>
+      <ul style="margin-top:10px">
+        <li>The description field in frontmatter is doing real work — it is how the main agent decides to auto-route. If the agent is never invoked automatically, the description is too vague or too broad.</li>
+        <li>Subagents inherit your project hooks. The build-on-write hook will fire inside a general-purpose subagent if it writes files. Verify this is what you want before delegating write tasks.</li>
+        <li>A subagent that writes to the same files as the main session creates a merge hazard. Scope write-capable agents to directories or files the main session is not currently editing.</li>
+        <li>Model selection is per-agent, not per-session. A Haiku scout inside an Opus main session is correct — do not reflexively up-model the subagent just because the parent is expensive.</li>
+      </ul>
+    </div>
+  </section>
+
   <!-- ═══════════════════════════════════════════ PACMAN EXPANSION PLAN -->
   <section>
     <h2>Pacman-cpp20 — expansion scope</h2>
@@ -1750,6 +1958,13 @@ echo "Exit: $?"</code></pre>
           <td>M6</td>
           <td><span class="status-badge badge-done">Done</span></td>
           <td>M6 completed. build-on-write PostToolUse hook active and working. PreToolUse path guard script correct but disabled — Claude Code bug #37210 (permissionDecision: "deny" ignored for Write/Edit tools, filed March 2026, open). Diagnosed all the way to upstream: wrong JSON key (file_path not path), Windows path separators, environment variable not set on Windows. CLAUDE.md Hooks section added with known limitation note. Resume: M7 — Subagents.</td>
+        </tr>
+        <tr>
+          <td class="col-session">06</td>
+          <td class="col-date">2026-05-30</td>
+          <td>M7</td>
+          <td><span class="status-badge badge-done">Done</span></td>
+          <td>M7 completed. Key correction vs original curriculum: no /batch or claude agents dashboard — current system is .claude/agents/*.md with YAML frontmatter + @agent-name invocation. cpp-scout subagent built (Haiku, read-only, maxTurns:12). Parallel dispatch confirmed working (3 concurrent scouts). /usage replaces /cost on subscription plans. Delegation matrix: subagent for noisy exploration, main context for tight T2 integration, neither for trivially small reads. CLAUDE.md updated with Phase 3 context findings. Resume: M8 — MCP.</td>
         </tr>
       </tbody>
     </table>
