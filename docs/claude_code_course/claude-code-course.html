@@ -535,8 +535,8 @@
     <div class="header-meta">
       <div class="meta-pill">Student: <strong>Ludovico Cellentani</strong></div>
       <div class="meta-pill">Started: <strong>2026-05-19</strong></div>
-      <div class="meta-pill">Current session: <strong>06</strong></div>
-      <div class="meta-pill">Next lesson: <strong>M8 · MCP — extending the tool surface</strong></div>
+      <div class="meta-pill">Current session: <strong>07</strong></div>
+      <div class="meta-pill">Next lesson: <strong>M9 · Cost, model selection &amp; sustainable usage</strong></div>
     </div>
   </header>
 
@@ -662,25 +662,25 @@
       </div>
 
       <!-- M8 -->
-      <div class="module-row active">
+      <div class="module-row done">
         <div class="module-num">08</div>
         <div>
           <div class="module-title">MCP — extending the tool surface</div>
-          <div class="module-desc">The Model Context Protocol in one page. Adding servers: <code>claude mcp add</code>, scopes (<code>--scope project/local/global</code>), <code>.mcp.json</code>. Token limits and <code>MAX_MCP_OUTPUT_TOKENS</code>. OAuth vs credential-based servers. Practical: connect a GitHub MCP server to wire pacman-cpp20 issues directly into the session.</div>
+          <div class="module-desc">The Model Context Protocol in one page. Adding servers: <code>claude mcp add</code>, scopes (<code>--scope local/project/user</code>), <code>.mcp.json</code>. Token limits and <code>MAX_MCP_OUTPUT_TOKENS</code>. OAuth vs PAT auth. Connected GitHub MCP server (user scope, fine-grained PAT) to pacman-cpp20. Created issue #1 via MCP. Env var expansion pattern for safe project-scoped credentials.</div>
         </div>
         <div class="module-tag">Integration</div>
-        <div><span class="status-badge badge-next">Next</span></div>
+        <div><span class="status-badge badge-done">Done</span></div>
       </div>
 
       <!-- M9 -->
-      <div class="module-row">
+      <div class="module-row active">
         <div class="module-num">09</div>
         <div>
           <div class="module-title">Cost, model selection &amp; sustainable usage</div>
           <div class="module-desc">Understanding <code>/cost</code>. The real cost of a multi-agent session (100K–200K tokens is routine). Fast Mode — same Opus, speed-optimised settings; when to turn it off. Weekly rate limits and the Pro/Max/API tradeoff. A decision framework for choosing model tier per task type.</div>
         </div>
         <div class="module-tag">Operations</div>
-        <div><span class="status-badge badge-todo">Todo</span></div>
+        <div><span class="status-badge badge-next">Next</span></div>
       </div>
 
     </div>
@@ -1877,6 +1877,179 @@ maxTurns: 10                <span class="line-comment"># cap agent turns — pre
     </div>
   </section>
 
+  <!-- ═══════════════════════════════════════════ M8 DETAIL -->
+  <section>
+    <h2>Module 08 — MCP: extending the tool surface</h2>
+
+    <div class="card card-accent">
+      <h3>Lesson goal</h3>
+      <p>By the end of this module you have a GitHub MCP server connected and working against pacman-cpp20. You can retrieve repo state, create issues, and understand the scope/auth model well enough to make safe configuration decisions. MCP is operational knowledge — the theory only sticks once you have run the commands.</p>
+    </div>
+
+    <h3 style="margin-top:24px">8.1 — What MCP is</h3>
+    <p>MCP (Model Context Protocol) is the standard that lets Claude Code call tools outside itself. Each MCP server is a process that exposes a set of named tools. Claude discovers them at startup and can call them exactly like its built-in tools — the model sees no difference between <code>Read</code> and <code>github_list_issues</code>. That is the point.</p>
+    <p>The analogy: MCP is to Claude Code what a driver is to an OS. The OS (Claude) does not know about your specific hardware (GitHub, Sentry, your database) — the driver (MCP server) speaks a common protocol and the OS calls it uniformly.</p>
+    <div class="callout callout-amber">
+      <div class="callout-label">When to connect a server</div>
+      When you catch yourself copy-pasting content from another tool into the session. Issue tracker, monitoring dashboard, PR list — if it is travelling through your clipboard to reach Claude, MCP eliminates that round-trip.
+    </div>
+
+    <h3 style="margin-top:24px">8.2 — Transports</h3>
+    <p>MCP servers communicate over one of four transports:</p>
+    <div class="card">
+      <ul>
+        <li><strong>HTTP</strong> (recommended for remote services) — standard for cloud-hosted servers. Supports OAuth natively. GitHub, Sentry, Linear, Notion all use this.</li>
+        <li><strong>stdio</strong> (local processes) — server runs as a subprocess, Claude communicates over stdin/stdout. Ideal for local tools with direct filesystem access or custom scripts.</li>
+        <li><strong>SSE</strong> — deprecated. Was the original remote transport. Still works; use HTTP instead. You will see it in older guides.</li>
+        <li><strong>WebSocket</strong> — persistent bidirectional connection. Only needed when the server pushes events unprompted. Not supported by <code>claude mcp add --transport</code>; configure via <code>.mcp.json</code> directly.</li>
+      </ul>
+    </div>
+    <p>For the GitHub exercise in this module: HTTP transport, PAT auth.</p>
+
+    <h3 style="margin-top:24px">8.3 — Three scopes</h3>
+    <p>The scope names changed from older documentation. This is the current state:</p>
+
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin:12px 0">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border-hi)">
+          <th style="text-align:left;padding:8px 12px;color:var(--muted);font-weight:400;font-size:10px;text-transform:uppercase;letter-spacing:0.1em">Scope</th>
+          <th style="text-align:left;padding:8px 12px;color:var(--muted);font-weight:400;font-size:10px;text-transform:uppercase;letter-spacing:0.1em">Who sees it</th>
+          <th style="text-align:left;padding:8px 12px;color:var(--muted);font-weight:400;font-size:10px;text-transform:uppercase;letter-spacing:0.1em">Where stored</th>
+          <th style="text-align:left;padding:8px 12px;color:var(--muted);font-weight:400;font-size:10px;text-transform:uppercase;letter-spacing:0.1em">Use case</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 12px"><code>local</code> (default)</td>
+          <td style="padding:8px 12px;color:var(--muted)">You, current project only</td>
+          <td style="padding:8px 12px;color:var(--muted)"><code>~/.claude.json</code></td>
+          <td style="padding:8px 12px;color:var(--muted)">Personal/experimental, credentials you do not want in VCS</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 12px"><code>project</code></td>
+          <td style="padding:8px 12px;color:var(--muted)">Everyone on the team</td>
+          <td style="padding:8px 12px;color:var(--muted)"><code>.mcp.json</code> in project root, committed to VCS</td>
+          <td style="padding:8px 12px;color:var(--muted)">Shared tooling — same servers for the whole team</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 12px"><code>user</code></td>
+          <td style="padding:8px 12px;color:var(--muted)">You, all projects</td>
+          <td style="padding:8px 12px;color:var(--muted)"><code>~/.claude.json</code></td>
+          <td style="padding:8px 12px;color:var(--muted)">Tools you use everywhere: GitHub, your DB, monitoring</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-red">
+      <div class="callout-label">Critical scope correction</div>
+      <code>project</code> scope does <strong>not</strong> mean "private to you in this project." It means <strong>shared with the team via version control</strong> — the config lands in <code>.mcp.json</code> which is designed to be committed. Never put raw credentials in a project-scoped config. Use env var expansion (<code>${GITHUB_PAT}</code>) instead.
+    </div>
+    <p style="margin-top:10px">Both <code>local</code> and <code>user</code> scope are stored in <code>~/.claude.json</code> — but in different sections. <code>local</code> is stored under a project-path key (only loads in that project). <code>user</code> is stored at the top level (loads everywhere). Same file, two sections.</p>
+    <p>Precedence when the same server is defined at multiple scopes: <code>local</code> &gt; <code>project</code> &gt; <code>user</code> &gt; plugin-provided.</p>
+
+    <h3 style="margin-top:24px">8.4 — Adding servers</h3>
+    <pre><code><span class="line-comment"># Remote HTTP server (most common)</span>
+<span class="line-cmd">claude mcp add</span> <span class="line-arg">--transport http &lt;name&gt; &lt;url&gt;</span>
+
+<span class="line-comment"># With auth header</span>
+<span class="line-cmd">claude mcp add</span> <span class="line-arg">--transport http github https://api.githubcopilot.com/mcp/</span> \
+  <span class="line-arg">--header "Authorization: Bearer YOUR_PAT"</span>
+
+<span class="line-comment"># Local stdio server — options before name, -- separates name from command</span>
+<span class="line-cmd">claude mcp add</span> <span class="line-arg">--transport stdio --env KEY=value &lt;name&gt; -- npx -y some-server</span>
+
+<span class="line-comment"># Explicit scope</span>
+<span class="line-arg">--scope local</span>    <span class="line-comment"># default, private to you in this project</span>
+<span class="line-arg">--scope project</span>  <span class="line-comment"># writes to .mcp.json, shared via VCS</span>
+<span class="line-arg">--scope user</span>     <span class="line-comment"># available in all your projects</span>
+
+<span class="line-comment"># Management</span>
+<span class="line-cmd">claude mcp list</span>          <span class="line-comment"># list all servers + status</span>
+<span class="line-cmd">claude mcp get github</span>    <span class="line-comment"># details for one server</span>
+<span class="line-cmd">claude mcp remove github</span> <span class="line-comment"># remove it</span></code></pre>
+    <p>Servers from <code>.mcp.json</code> that have not been approved yet show as <code>⏸ Pending approval</code> in <code>claude mcp list</code>. Run <code>claude</code> interactively to review and approve them. The <code>/mcp</code> slash command shows live server status and handles OAuth flows from inside a session.</p>
+
+    <h3 style="margin-top:24px">8.5 — Authentication patterns</h3>
+    <p><strong>PAT (Personal Access Token)</strong> — what you use for GitHub. Pass as a header. Use fine-grained PATs (not classic) — they let you scope to specific repositories.</p>
+    <div class="callout callout-red">
+      <div class="callout-label">Never hardcode tokens in .mcp.json</div>
+      That file is designed to be committed. Use env var expansion instead: <code>"Authorization": "Bearer ${GITHUB_PAT}"</code>. The variable is expanded at server startup from your shell environment. If the variable is not set, Claude Code fails to parse the entry rather than connecting with an empty token.
+    </div>
+    <p style="margin-top:10px"><strong>OAuth</strong> — what most hosted services use (Sentry, Linear, Notion). Claude Code handles the full flow. When a server responds with <code>401</code> or <code>403</code>, it flags in <code>/mcp</code> so you can complete the browser auth. Token stored in keychain (macOS) or a credentials file, refreshed automatically.</p>
+    <p>The practical rule: static API key → header auth. OAuth-capable server → prefer OAuth. No tokens land in config files.</p>
+    <p><strong>PAT scope and multiple projects</strong>: a user-scoped server uses one PAT across all projects. Fine-grained PATs let you select specific repositories explicitly — start narrow and expand as needed. If you need to mix personal and employer repos with different access levels, register separate servers (<code>github-personal</code>, <code>github-work</code>) backed by separate PATs.</p>
+
+    <h3 style="margin-top:24px">8.6 — Token limits</h3>
+    <p>Two env vars to know:</p>
+    <div class="card">
+      <ul>
+        <li><code>MAX_MCP_OUTPUT_TOKENS</code> — hard ceiling on tokens per tool call output. Default: <strong>25,000</strong>. Claude Code warns at 10,000. Set higher if a tool (e.g. a large DB schema query) legitimately needs it: <code>export MAX_MCP_OUTPUT_TOKENS=50000</code></li>
+        <li><code>ENABLE_TOOL_SEARCH</code> — by default, MCP tool definitions are <em>deferred</em>: only tool names load at startup, schemas load on demand. This keeps context lean. Set to <code>false</code> to load everything upfront (not recommended unless you are debugging tool routing).</li>
+      </ul>
+    </div>
+    <p>The practical implication: adding 10 MCP servers does not bloat your context the way 10 large <code>@</code> file reads do. Tool search handles deferred loading transparently.</p>
+
+    <h3 style="margin-top:24px">8.7 — MCP vs subagents — completing the architecture picture</h3>
+    <p>MCP sits in the Extension layer, not the Delegation layer. The distinction matters:</p>
+    <div class="card card-blue">
+      <ul>
+        <li>A <strong>subagent</strong> (M7) is a separate Claude instance — it has its own context, reasons, and decides. You delegate tasks to it.</li>
+        <li>An <strong>MCP server</strong> is a dumb tool surface — it executes what Claude tells it and returns data. No reasoning happens inside it.</li>
+      </ul>
+    </div>
+    <p style="margin-top:10px">MCP expands what Claude can <em>act on</em>. Subagents expand what Claude can <em>delegate reasoning to</em>. They compose: a subagent can call MCP tools just like the main session can.</p>
+
+    <h3 style="margin-top:24px">8.8 — Exercises</h3>
+
+    <div class="exercise">
+      <div class="exercise-num">Exercise 08-A — Connect the GitHub MCP server (user scope)</div>
+      <p>Connect GitHub's remote MCP server at <code>https://api.githubcopilot.com/mcp/</code> as a user-scoped server using a fine-grained PAT with access to <code>pacman-cpp20</code>. Minimum permissions: Issues (read/write), Pull requests (read), Contents (read).</p>
+      <pre><code><span class="line-cmd">claude mcp add</span> <span class="line-arg">--transport http github https://api.githubcopilot.com/mcp/</span> \
+  <span class="line-arg">--header "Authorization: Bearer YOUR_PAT"</span> \
+  <span class="line-arg">--scope user</span></code></pre>
+      <p style="margin-top:8px">Verify with <code>claude mcp list</code>. Then inside a session, ask Claude to list open issues on <code>pacman-cpp20</code> and create one titled "Phase 3: ghost AI coroutine scaffolding" if none exist.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 08-B — Query the repo via MCP</div>
+      <p>Inside a Claude Code session with GitHub connected, ask Claude in a single prompt to: list all open issues, report the most recent commit message on <code>main</code>, and list any open PRs. Observe that it dispatches all three calls in parallel — same pattern as M7 subagent parallel dispatch, but here it is MCP tools inside the main context. No copy-pasting involved.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 08-C — Project scope and safe credential handling</div>
+      <p>Add the GitHub server with <code>--scope project</code> and inspect the resulting <code>.mcp.json</code>. Observe the raw PAT in a file designed to be committed — that is the problem. Remove the server. Then create <code>.mcp.json</code> manually with env var expansion:</p>
+      <pre><code>{
+  "mcpServers": {
+    "github-project": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_PAT}"
+      }
+    }
+  }
+}</code></pre>
+      <p style="margin-top:8px">Run <code>claude mcp list</code> — server shows as <code>⏸ Pending approval</code>. Run <code>claude</code> interactively to approve. Verify it connects. Then remove the <code>.mcp.json</code> — you do not need two GitHub servers. The lesson: project scope + env var expansion is the safe pattern for shared configs.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 08-D — Token budget awareness</div>
+      <p>Ask Claude to fetch the full file tree of <code>pacman-cpp20</code> via the GitHub MCP server without <code>MAX_MCP_OUTPUT_TOKENS</code> set. Note whether a warning appears. Then set <code>export MAX_MCP_OUTPUT_TOKENS=50000</code> and repeat. On a small repo this may not trigger the warning — the exercise builds awareness of the knob rather than demonstrating a hard failure. You will hit the default limit on production-sized codebases.</p>
+    </div>
+
+    <h3 style="margin-top:28px">8.9 — Session close checklist</h3>
+    <div class="card card-green">
+      <p>After Module 8, the GitHub MCP server should be connected at <code>user</code> scope and verified. CLAUDE.md updated with a note that GitHub MCP is available. No raw PAT in any committed file.</p>
+      <ul style="margin-top:10px">
+        <li>User-scoped servers load in every project — GitHub is the right call here. You would only go local or project scope for a server specific to one repo or team.</li>
+        <li>Project-scoped <code>.mcp.json</code> is designed to be committed. The only safe credential pattern there is env var expansion: <code>${VAR}</code>. Hardcoded tokens in <code>.mcp.json</code> are a credentials leak waiting to happen.</li>
+        <li>MCP tool calls consume context. <code>ENABLE_TOOL_SEARCH</code> is on by default — tool schemas are deferred and loaded on demand, so adding many servers has low baseline cost.</li>
+        <li>MCP is the Extension layer, not the Delegation layer. It gives Claude more to act on; it does not reason independently. That distinction separates MCP from subagents conceptually.</li>
+        <li>The GitHub remote server endpoint is <code>https://api.githubcopilot.com/mcp/</code> — GitHub's Copilot infrastructure, but no Copilot subscription is required. A PAT with the right repo permissions is sufficient.</li>
+      </ul>
+    </div>
+  </section>
+
   <!-- ═══════════════════════════════════════════ PACMAN EXPANSION PLAN -->
   <section>
     <h2>Pacman-cpp20 — expansion scope</h2>
@@ -1965,6 +2138,13 @@ maxTurns: 10                <span class="line-comment"># cap agent turns — pre
           <td>M7</td>
           <td><span class="status-badge badge-done">Done</span></td>
           <td>M7 completed. Key correction vs original curriculum: no /batch or claude agents dashboard — current system is .claude/agents/*.md with YAML frontmatter + @agent-name invocation. cpp-scout subagent built (Haiku, read-only, maxTurns:12). Parallel dispatch confirmed working (3 concurrent scouts). /usage replaces /cost on subscription plans. Delegation matrix: subagent for noisy exploration, main context for tight T2 integration, neither for trivially small reads. CLAUDE.md updated with Phase 3 context findings. Resume: M8 — MCP.</td>
+        </tr>
+        <tr>
+          <td class="col-session">07</td>
+          <td class="col-date">2026-05-31</td>
+          <td>M8</td>
+          <td><span class="status-badge badge-done">Done</span></td>
+          <td>M8 completed. Key correction vs original curriculum: scope names changed — local (was project), project (was global/shared), user (was global). GitHub MCP connected at user scope via fine-grained PAT (HTTP transport, api.githubcopilot.com). All four exercises completed: server connected, parallel repo queries working, project-scope env var expansion pattern demonstrated, token limit awareness. Issue #1 created on pacman-cpp20 via MCP. CLAUDE.md updated with GitHub MCP note. Resume: M9 — Cost and model selection.</td>
         </tr>
       </tbody>
     </table>

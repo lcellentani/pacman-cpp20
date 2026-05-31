@@ -144,6 +144,10 @@ Code review criteria: `.claude/skills/cpp-review.md`
 
 **Do not use** virtual functions or inheritance in the entity system — use Concepts. Do not use `import <...>` (angle-bracket header units) — put `#include` in the global module fragment. Do not use `auto` as a return type except for coroutines and lambdas.
 
+## MCP Servers
+
+- **github** — GitHub remote MCP server, user scope. Endpoint: `https://api.githubcopilot.com/mcp/`. Auth: fine-grained PAT via `Authorization: Bearer` header, scoped to `pacman-cpp20` (Issues read/write, Pull requests read, Contents read). Available in all projects. Use for issue management, commit history, PR queries without leaving the session.
+
 ## Custom Commands
 
 - `/build` — run the clang-ninja-debug preset build
