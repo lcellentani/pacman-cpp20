@@ -1,9 +1,11 @@
 module;
 #include "imgui.h"
+#include <span>
 
 module game.debug;
 
-void DebugView::draw(const Map& map, const PacmanDebugState& pacman, GameConfig& config) {
+void DebugView::draw(const Map& map, const PacmanDebugState& pacman,
+                     std::span<const GhostDebugState> ghosts, GameConfig& config) {
     if (!visible_) return;
 
     ImGui::SetNextWindowPos({ WINDOW_W + 10.f, 10.f }, ImGuiCond_Once);
@@ -11,11 +13,37 @@ void DebugView::draw(const Map& map, const PacmanDebugState& pacman, GameConfig&
 
     ImGui::Begin("Debug");
     draw_pacman_section(pacman);
+    for (const GhostDebugState& ghost : ghosts) {
+        ImGui::Separator();
+        draw_ghost_section(ghost);
+    }
     ImGui::Separator();
     draw_tweaks_section(config);
     ImGui::Separator();
     draw_map_section(map, pacman);
     ImGui::End();
+}
+
+void DebugView::draw_ghost_section(const GhostDebugState& ghost) {
+    const char* names[] = { "Blinky", "Pinky", "Inky", "Clyde" };
+    const char* name = names[static_cast<int>(ghost.id)];
+
+    if (!ImGui::CollapsingHeader(name, ImGuiTreeNodeFlags_DefaultOpen))
+        return;
+
+    const char* state_names[] = { "Scatter", "Chase", "Frightened", "Dead" };
+    const char* state_str = state_names[static_cast<int>(ghost.state)];
+
+    ImGui::Text("pos    %d, %d", ghost.col, ghost.row);
+    ImGui::Text("vel    %d, %d", ghost.dir_x, ghost.dir_y);
+    ImGui::Text("speed  %.1f", ghost.speed);
+    ImGui::Text("state  %s", state_str);
+    if (ghost.target_col >= 0)
+        ImGui::Text("target %d, %d", ghost.target_col, ghost.target_row);
+    ImGui::Spacing();
+    ImGui::Text("AABB   x=%.1f y=%.1f w=%.1f h=%.1f",
+        ghost.bounds.x, ghost.bounds.y,
+        ghost.bounds.width, ghost.bounds.height);
 }
 
 void DebugView::draw_tweaks_section(GameConfig& config) {

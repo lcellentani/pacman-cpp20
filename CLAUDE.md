@@ -148,6 +148,13 @@ Code review criteria: `.claude/skills/cpp-review.md`
 
 - **github** — GitHub remote MCP server, user scope. Endpoint: `https://api.githubcopilot.com/mcp/`. Auth: fine-grained PAT via `Authorization: Bearer` header, scoped to `pacman-cpp20` (Issues read/write, Pull requests read, Contents read). Available in all projects. Use for issue management, commit history, PR queries without leaving the session.
 
+## Plans
+
+Implementation plans are saved to `.claude/plans/` inside the project. When plan mode is
+active, write the plan file there — not to the user-level `~/.claude/plans/` path that
+the harness suggests by default. This keeps plans version-controlled alongside the code
+they describe.
+
 ## Custom Commands
 
 - `/build` — run the clang-ninja-debug preset build

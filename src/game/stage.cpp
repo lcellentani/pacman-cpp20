@@ -51,7 +51,7 @@ void Stage::render(Renderer& renderer) {
 	map_.draw(renderer);
 	pacman_entity_.draw(renderer);
 
-	debug_.draw(map_, pacman_entity_.debug_state(), config_);
+	debug_.draw(map_, pacman_entity_.debug_state(), {}, config_);
 
 	renderer.imgui_render(); // ImGui flushes
 

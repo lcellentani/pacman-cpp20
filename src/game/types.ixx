@@ -18,3 +18,17 @@ export struct PacmanDebugState {
 };
 
 export struct Dir { int x, y; }; // values always in {-1, 0, 1}
+
+export enum class GhostState { Scatter, Chase, Frightened, Dead };
+
+export enum class GhostId { Blinky, Pinky, Inky, Clyde };
+
+export struct GhostDebugState {
+    GhostId    id;
+    int        col, row;
+    int        dir_x, dir_y;
+    float      speed;
+    AABB       bounds;
+    GhostState state;
+    int        target_col, target_row; // -1,-1 when not applicable (Frightened/Dead)
+};
