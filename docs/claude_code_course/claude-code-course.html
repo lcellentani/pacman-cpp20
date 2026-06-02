@@ -535,8 +535,8 @@
     <div class="header-meta">
       <div class="meta-pill">Student: <strong>Ludovico Cellentani</strong></div>
       <div class="meta-pill">Started: <strong>2026-05-19</strong></div>
-      <div class="meta-pill">Current session: <strong>07</strong></div>
-      <div class="meta-pill">Next lesson: <strong>M9 · Cost, model selection &amp; sustainable usage</strong></div>
+      <div class="meta-pill">Current session: <strong>08</strong></div>
+      <div class="meta-pill">Next lesson: <strong>Course complete</strong></div>
     </div>
   </header>
 
@@ -673,14 +673,14 @@
       </div>
 
       <!-- M9 -->
-      <div class="module-row active">
+      <div class="module-row done">
         <div class="module-num">09</div>
         <div>
           <div class="module-title">Cost, model selection &amp; sustainable usage</div>
           <div class="module-desc">Understanding <code>/cost</code>. The real cost of a multi-agent session (100K–200K tokens is routine). Fast Mode — same Opus, speed-optimised settings; when to turn it off. Weekly rate limits and the Pro/Max/API tradeoff. A decision framework for choosing model tier per task type.</div>
         </div>
         <div class="module-tag">Operations</div>
-        <div><span class="status-badge badge-next">Next</span></div>
+        <div><span class="status-badge badge-done">Done</span></div>
       </div>
 
     </div>
@@ -2050,6 +2050,175 @@ maxTurns: 10                <span class="line-comment"># cap agent turns — pre
     </div>
   </section>
 
+  <!-- ═══════════════════════════════════════════ M9 DETAIL -->
+  <section>
+    <h2>Module 09 — Cost, model selection &amp; sustainable usage</h2>
+
+    <div class="card card-accent">
+      <h3>Lesson goal</h3>
+      <p>By the end of this lesson you have a clear mental model for what drives cost and quota consumption, you can make deliberate model selection decisions rather than defaulting to whatever is active, and you understand the two independent levers that control speed: Fast Mode and effort level. You also have the five habits that prevent runaway context from killing both quality and budget.</p>
+    </div>
+
+    <h3 style="margin-top:24px">9.1 — The three variables that drive cost</h3>
+    <p>The cost question in Claude Code is not "how much does Opus cost per token." It is: <strong>what determines total session spend, and how do you control it?</strong> Three variables drive the answer.</p>
+
+    <div class="card">
+      <h3>Variable 1 — Context size</h3>
+      <p>Every turn sends the entire conversation history to the model. A session that has read 20 files, produced 10 diffs, and debugged through 30 messages is paying for all of that on every subsequent message. Context is cumulative — and it is the dominant cost driver, not model selection. This is M4 and M9 as the same lesson from different angles.</p>
+    </div>
+    <div class="card">
+      <h3>Variable 2 — Model tier</h3>
+      <p>Three families: Haiku (fast, cheap), Sonnet (default, right for ~80% of work), Opus (deeper reasoning, more expensive, more quota). On API billing the cost differential between Sonnet and Opus is roughly 5–8× on input, 6–10× on output. On subscription plans the effect is quota burn rate rather than dollar cost.</p>
+    </div>
+    <div class="card">
+      <h3>Variable 3 — Task count per session</h3>
+      <p>Each unrelated task you stack onto an existing session adds to the running context. Clearing between tasks is the highest-ROI habit because it zeroes out variable 1. Simple test: if your next prompt would make sense in a brand-new terminal, run <code>/clear</code> first.</p>
+    </div>
+
+    <h3 style="margin-top:24px">9.2 — Billing mode: two different worlds</h3>
+    <p>How your account is set up determines how cost surfaces — and which command to use.</p>
+
+    <div class="card card-blue">
+      <h3>Subscription plans (Pro / Max / Team Premium / Enterprise seat)</h3>
+      <p>Flat monthly fee with a usage quota that resets on a rolling window (~5 hours for individual limits). You see quota consumption, not a dollar counter. When you hit the limit, Claude Code shows when the window resets. The relevant command is <code>/usage</code>. Default model depends on tier: Pro gets Sonnet 4.6; Max / Team Premium / Enterprise pay-as-you-go get Opus 4.8.</p>
+      <p style="margin-top:8px"><strong>Note:</strong> In recent versions, <code>/cost</code> and <code>/usage</code> appear to be aliases — both return the same output. Verify with <code>/model</code> what tier your account defaults to.</p>
+    </div>
+
+    <div class="card card-blue">
+      <h3>API key (Console, Bedrock, Vertex, Foundry)</h3>
+      <p>Pay per token, billed to your account. No monthly cap, no hard stop. The relevant command is <code>/cost</code> — it shows running spend for the current session. On a long agentic session with a codebase like pacman-cpp20, 100K–200K input tokens per session is routine. With three concurrent subagents, multiply proportionally.</p>
+      <p style="margin-top:8px">API billing punishes long uncleared sessions far more visibly than subscription billing. Both benefit from the same habits, but the feedback loop is sharper on API.</p>
+    </div>
+
+    <h3 style="margin-top:24px">9.3 — Model selection: <code>/model</code> and its aliases</h3>
+    <p>Run <code>/model</code> at any time. No arguments opens the interactive picker; <code>/model &lt;alias&gt;</code> switches immediately. Context and history carry over — only the model processing your next message changes.</p>
+
+    <pre><code><span class="line-cmd">/model</span>              <span class="line-comment"># open picker</span>
+<span class="line-cmd">/model sonnet</span>       <span class="line-comment"># switch to Sonnet 4.6 — default for most work</span>
+<span class="line-cmd">/model opus</span>         <span class="line-comment"># switch to Opus 4.8 (API) / 4.7 (AWS)</span>
+<span class="line-cmd">/model haiku</span>        <span class="line-comment"># switch to Haiku 4.5 — cheap, fast, mechanical tasks</span>
+<span class="line-cmd">/model opusplan</span>     <span class="line-comment"># Opus during plan mode → Sonnet for execution</span>
+<span class="line-cmd">/model opus[1m]</span>     <span class="line-comment"># Opus with 1M token context window</span></code></pre>
+
+    <p><code>opusplan</code> is the most underused alias. It gives you Opus-quality planning (where reasoning pays off) and Sonnet execution (where the work is mostly mechanical). Use it as the default for any session involving architectural decisions or multi-file changes.</p>
+
+    <div class="callout callout-amber">
+      <div class="callout-label">Project-level model default</div>
+      Pin a model for a specific project in <code>.claude/settings.json</code>: <code>{ "model": "opusplan" }</code>. Sets the startup default; users can still override with <code>/model</code>.
+    </div>
+
+    <h3 style="margin-top:24px">9.4 — Effort levels</h3>
+    <p>A second, independent axis from model selection. <code>/effort</code> controls how much the model reasons per step. Available on Opus 4.8, Opus 4.7, Opus 4.6, and Sonnet 4.6.</p>
+
+    <pre><code><span class="line-cmd">/effort</span>             <span class="line-comment"># open picker</span>
+<span class="line-comment"># Levels: low · medium · high (default) · xhigh · max</span>
+<span class="line-comment"># low/medium/high/xhigh persist across sessions</span>
+<span class="line-comment"># max applies to current session only</span></code></pre>
+
+    <p>Lower effort is faster and cheaper for straightforward tasks. Unlike <code>/model</code>, effort affects quality, not just speed — dropping effort to <code>low</code> on a complex architectural question will produce shallower output. It is not a substitute for switching to Haiku; it is a reasoning depth knob on the current model.</p>
+
+    <h3 style="margin-top:24px">9.5 — Fast Mode</h3>
+    <p>Fast Mode is a high-speed configuration for Opus 4.6, making it 2.5× faster at higher token cost ($30/$150 per MTok input/output). It is <strong>not</strong> a different model — same weights, different API configuration optimized for latency over cost efficiency.</p>
+
+    <pre><code><span class="line-cmd">/fast</span>               <span class="line-comment"># toggle on/off. ↯ indicator appears when active</span></code></pre>
+
+    <div class="card">
+      <h3>Fast Mode vs effort level</h3>
+      <p><strong>Fast Mode</strong> = same quality, lower latency, higher cost. The trade is money for speed.<br>
+      <strong>Lower effort</strong> = less reasoning time, faster responses, potentially lower quality. The trade is quality for speed.<br>
+      They are orthogonal — you can combine both for maximum speed on straightforward tasks.</p>
+    </div>
+
+    <div class="callout callout-red">
+      <div class="callout-label">Fast Mode constraints</div>
+      Research preview. Available only on subscription plans via extra usage (billed at fast mode rates from the first token, bypassing your plan's included quota). Not available on Bedrock, Vertex, or Azure Foundry. Requires extra usage credits to be enabled. If your organization has not explicitly enabled it, <code>/fast</code> returns a disabled message.
+    </div>
+
+    <h3 style="margin-top:24px">9.6 — The decision framework</h3>
+
+    <pre><code><span class="line-comment"># Task is: small, mechanical, repetitive (grep, rename, boilerplate)?</span>
+<span class="line-out">→ Haiku. Or delegate to a Haiku subagent if it would bloat main context.</span>
+
+<span class="line-comment"># Task is: standard coding work (feature, fix, test, refactor)?</span>
+<span class="line-out">→ Sonnet. Covers ~80% of your day.</span>
+
+<span class="line-comment"># Task is: complex reasoning (architecture, hard bug, cross-cutting refactor)?</span>
+<span class="line-out">→ opusplan. Opus writes the plan. Sonnet executes it.</span>
+
+<span class="line-comment"># Starting a new unrelated task?</span>
+<span class="line-out">→ /clear first. Dead context is the main cost driver.</span>
+
+<span class="line-comment"># Mid-task, context filling up?</span>
+<span class="line-out">→ /compact. Not /clear — you need the history.</span>
+
+<span class="line-comment"># On API billing, long autonomous run?</span>
+<span class="line-out">→ Track with /cost. Exploration tasks → Haiku subagent (M7 pattern).</span></code></pre>
+
+    <h3 style="margin-top:24px">9.7 — What actually consumes tokens</h3>
+    <p>Every turn sends three things to the model: the full conversation history, project context (CLAUDE.md + files read this session), and your new prompt. Of these, conversation history is the dominant driver — it grows with every turn.</p>
+    <ul style="margin-top:10px">
+      <li><strong>CLAUDE.md</strong> is included on every turn. Prompt caching makes subsequent turns cheap (cache-read rates), but it still occupies window space. Keep it under ~200 lines.</li>
+      <li><strong>MCP tool results</strong> (M8) accumulate in context. <code>MAX_MCP_OUTPUT_TOKENS</code> is a cost knob, not just a stability guard.</li>
+      <li><strong>Subagent token cost</strong> (M7): parallel subagents multiply consumption proportionally. Three concurrent Haiku scouts cost ~3× a single scout. Parallel Opus subagents on API billing is expensive fast.</li>
+      <li><strong>Once a file is in context, follow-up questions about it are nearly free.</strong> The expensive operation is the first read. Batch related file reads into one session rather than starting fresh for each question.</li>
+      <li><strong><code>/clear</code> resets conversation, not the process.</strong> <code>/cost</code> and <code>/usage</code> report the full process lifetime. For a clean cost baseline, restart the process entirely (<code>/exit</code> then <code>claude</code>).</li>
+    </ul>
+
+    <h3 style="margin-top:24px">9.8 — Subscription vs API: when to switch</h3>
+    <div class="card">
+      <h3>Subscription is better when</h3>
+      <ul>
+        <li>Usage is consistent and daily</li>
+        <li>You want predictable monthly cost</li>
+        <li>You are working on a single development machine</li>
+      </ul>
+    </div>
+    <div class="card" style="margin-top:0">
+      <h3>API key is better when</h3>
+      <ul>
+        <li>Usage is irregular or bursty</li>
+        <li>You want exact per-session cost visibility</li>
+        <li>You are building CI pipelines or headless tooling</li>
+        <li>You need fine-grained model version pinning</li>
+      </ul>
+    </div>
+    <p style="margin-top:12px">The hybrid approach: subscription as baseline, API overflow for spikes. Subscription optimizes for predictability; API handles peaks without upgrading tiers permanently. Note: Anthropic has adjusted subscription quotas several times in 2026 — the tier prices (Pro $20/month, Max 5×/$100, Max 20×/$200) have been stable, but the quota inside each tier has moved. Check the current help center before making a tier decision.</p>
+
+    <h3 style="margin-top:28px">9.9 — Session close checklist</h3>
+    <div class="card card-green">
+      <p>After Module 9, you should be making deliberate model selection decisions and have the five habits internalized.</p>
+      <ul style="margin-top:10px">
+        <li><code>/cost</code> and <code>/usage</code> appear to be aliases in recent versions. Both return the same output. Know which billing mode you are on — that determines what the numbers mean.</li>
+        <li><code>opusplan</code> is the best general pattern for complex tasks — not "always Opus."</li>
+        <li>Context accumulation is the dominant cost driver. M4 (context management) and M9 (cost) are the same lesson viewed from different angles.</li>
+        <li>Fast Mode = speed, not quality. Only makes sense when you are actively watching responses. Requires extra usage credits.</li>
+        <li>Effort level (<code>/effort</code>) is a separate axis — it affects reasoning depth, not just latency. Persists across sessions; check it at the start of a new session if you suspect it was changed.</li>
+        <li><code>/clear</code> resets conversation but not the process. For a clean cost baseline, restart the process.</li>
+        <li>Per-skill cost attribution is surfaced in the usage report — heavy commands like <code>/project_status</code> can be scoped to a cheaper model via skill frontmatter.</li>
+      </ul>
+    </div>
+
+    <div class="exercise">
+      <div class="exercise-num">Exercise 09-A — Identify your billing mode and the right command</div>
+      <p>Open Claude Code in pacman-cpp20. Run both <code>/cost</code> and <code>/usage</code> — note whether they differ or alias. Run <code>/model</code> with no arguments. Confirm the active model and what tier it says your account defaults to. This is your baseline for the rest of the module.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 09-B — Model switching mid-session</div>
+      <p>Run <code>/project_status</code> to load context. Switch to <code>opusplan</code>. Ask Claude to describe the architectural approach for Phase 3 coroutine ghost AI — not to implement, just to reason about the design. Check the model indicator. Switch to <code>/model sonnet</code> and ask a mechanical question (e.g. how many <code>.ixx</code> files in the project). Run usage/cost again and note the delta. Note that the per-skill attribution report identifies <code>/project_status</code> as the dominant cost driver — not the Opus planning turn.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 09-C — Context cost awareness</div>
+      <p>Fresh session. Baseline cost reading. Ask Claude to read <code>pacman.ixx</code>, <code>renderer.ixx</code>, and <code>stage.ixx</code> in one prompt. Check cost — note the cache write spike. Ask a follow-up answerable from existing context (no new reads). Check cost again — the turn cost is dominated by re-sending cached context, not by your prompt size. This is the core insight: the expensive operation is the first read; subsequent questions about the same files are nearly free.</p>
+    </div>
+
+    <div class="exercise" style="margin-top:14px">
+      <div class="exercise-num">Exercise 09-D — Fast Mode toggle and the effort lever</div>
+      <p>Enable <code>/fast</code> (requires extra usage credits — skip steps 1–3 if unavailable and proceed to effort steps). Confirm the <code>↯</code> indicator. Ask a small question and observe latency. Disable with <code>/fast</code> again. Run <code>/effort</code> — inspect available levels for your current model. Drop to <code>low</code> and ask the same question. Compare speed and depth. Restore to <code>high</code> before closing. The exercise builds awareness of two independent speed levers: Fast Mode (cost/latency, no quality change) vs effort level (quality/speed tradeoff).</p>
+    </div>
+  </section>
+
   <!-- ═══════════════════════════════════════════ PACMAN EXPANSION PLAN -->
   <section>
     <h2>Pacman-cpp20 — expansion scope</h2>
@@ -2146,6 +2315,13 @@ maxTurns: 10                <span class="line-comment"># cap agent turns — pre
           <td><span class="status-badge badge-done">Done</span></td>
           <td>M8 completed. Key correction vs original curriculum: scope names changed — local (was project), project (was global/shared), user (was global). GitHub MCP connected at user scope via fine-grained PAT (HTTP transport, api.githubcopilot.com). All four exercises completed: server connected, parallel repo queries working, project-scope env var expansion pattern demonstrated, token limit awareness. Issue #1 created on pacman-cpp20 via MCP. CLAUDE.md updated with GitHub MCP note. Resume: M9 — Cost and model selection.</td>
         </tr>
+        <tr>
+          <td class="col-session">08</td>
+          <td class="col-date">2026-06-02</td>
+          <td>M9</td>
+          <td><span class="status-badge badge-done">Done</span></td>
+          <td>M9 completed. Key corrections vs original curriculum: /cost and /usage are aliases in recent versions (both return same output); Fast Mode is Opus 4.6 specific and research preview, requires extra usage credits. Per-skill cost attribution surfaced in usage report (/project_status identified as dominant cost driver). /clear resets conversation not process — restart for clean cost baseline. effort level persists across sessions. Course complete — all 9 modules done.</td>
+        </tr>
       </tbody>
     </table>
 
@@ -2172,11 +2348,13 @@ maxTurns: 10                <span class="line-comment"># cap agent turns — pre
       <div>
         <h3 style="margin-bottom:10px">Slash commands</h3>
         <pre style="margin:0"><code><span class="line-cmd">/compact</span> <span class="line-arg">[what to keep]</span>  <span class="line-comment"># shrink context</span>
-<span class="line-cmd">/clear</span>                   <span class="line-comment"># full reset</span>
-<span class="line-cmd">/cost</span>                    <span class="line-comment"># token usage</span>
+<span class="line-cmd">/clear</span>                   <span class="line-comment"># full reset (conversation only)</span>
+<span class="line-cmd">/cost</span> <span class="line-comment">·</span> <span class="line-cmd">/usage</span>           <span class="line-comment"># token usage (aliases in recent versions)</span>
+<span class="line-cmd">/model</span> <span class="line-arg">[alias]</span>          <span class="line-comment"># switch model (sonnet/opus/haiku/opusplan)</span>
+<span class="line-cmd">/effort</span> <span class="line-arg">[level]</span>         <span class="line-comment"># reasoning depth (low/medium/high/xhigh/max)</span>
+<span class="line-cmd">/fast</span>                    <span class="line-comment"># toggle Fast Mode (↯ indicator, extra usage)</span>
 <span class="line-cmd">/help</span>                    <span class="line-comment"># all commands</span>
-<span class="line-cmd">/exit</span>                    <span class="line-comment"># quit</span>
-<span class="line-cmd">/goal</span>                    <span class="line-comment"># completion loop</span></code></pre>
+<span class="line-cmd">/exit</span>                    <span class="line-comment"># quit</span></code></pre>
       </div>
     </div>
 

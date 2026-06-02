@@ -110,7 +110,7 @@ Module interface units use `.ixx`; implementation units use `.cpp`. The global m
 ## Architecture
 
 **engine layer** — platform-facing, no game logic:
-- `engine.renderer` — SDL2 window, pixel/rect/circle draw, ImGui frame management
+- `engine.renderer` — SDL2 window, pixel/rect/circle draw, ImGui frame management`
 - `engine.input` — polls SDL events, returns an `InputState` snapshot each frame
 - `engine.types` — `AABB`, `Vec2`
 
