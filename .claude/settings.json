@@ -2,16 +2,5 @@
   "permissionMode": "acceptEdits",
   "disallowedTools": ["GitCommit", "GitPush"],
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": ".claude/hooks/build-on-write.sh"
-          }
-        ]
-      }
-    ]
   }
 }
