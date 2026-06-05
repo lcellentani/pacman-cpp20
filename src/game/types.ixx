@@ -1,3 +1,7 @@
+module;
+#include <coroutine>
+#include <exception>
+
 export module game.types;
 
 import engine.types;
@@ -31,4 +35,39 @@ export struct GhostDebugState {
     AABB       bounds;
     GhostState state;
     int        target_col, target_row; // -1,-1 when not applicable (Frightened/Dead)
+};
+
+export struct Task {
+    struct promise_type {
+        Task get_return_object() {
+            return Task{ std::coroutine_handle<promise_type>::from_promise(*this) };
+        }
+        std::suspend_always initial_suspend() { return {}; }
+        std::suspend_always final_suspend() noexcept { return {}; }
+        void return_void() {}
+        void unhandled_exception() { std::terminate(); }
+    };
+
+    std::coroutine_handle<promise_type> handle_;
+
+    explicit Task(std::coroutine_handle<promise_type> handle) : handle_(handle) {}
+    ~Task() {
+        if (handle_) handle_.destroy();
+    }
+
+    Task() : handle_(nullptr) {}
+    Task(const Task&) = delete;
+    Task& operator=(const Task&) = delete;
+    
+    Task(Task&& other) : handle_(other.handle_) { other.handle_ = nullptr; }
+    Task& operator=(Task&& other) {
+        if (this != &other) {
+            if (handle_) {
+                handle_.destroy();
+            }
+            handle_ = other.handle_;
+            other.handle_ = {};
+        }
+        return *this;
+    }
 };

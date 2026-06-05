@@ -68,8 +68,10 @@ target_sources(pacman
         src/engine/renderer.cpp
         src/game/config.cpp
         src/game/debug.cpp
+        src/game/ghost.cpp
         src/game/map.cpp
         src/game/pacman.cpp
+        src/game/scheduler.cpp
         src/game/stage.cpp
     PRIVATE FILE_SET CXX_MODULES FILES
         src/engine/renderer.ixx
@@ -78,8 +80,10 @@ target_sources(pacman
         src/game/concepts.ixx
         src/game/config.ixx
         src/game/debug.ixx
+        src/game/ghost.ixx
         src/game/map.ixx
         src/game/pacman.ixx
+        src/game/scheduler.ixx
         src/game/stage.ixx
         src/game/types.ixx
  )

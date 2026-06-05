@@ -7,6 +7,7 @@ import engine.input;
 import game.concepts;
 import game.config;
 import game.debug;
+import game.ghost;
 import game.map;
 import game.pacman;
 
@@ -25,6 +26,7 @@ public:
 private:
     Map map_;
 	Pacman pacman_entity_;
+    Ghost Clyde;
 
     bool running_ = false;
     int score_ = 0;

@@ -2,7 +2,7 @@
 module game.stage;
 
 Stage::Stage(GameConfig config)
-	: config_(config), map_(), pacman_entity_() {
+	: map_(), pacman_entity_(), config_(config), debug_() {
 }
 
 void Stage::reset() {
