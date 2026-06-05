@@ -26,9 +26,23 @@
         "--function-arg-placeholders=false",
         "--header-insertion=never",
         "--log=error",
+        // Keep preamble PCH in RAM instead of mmap'ing a temp file — reduces files
+        // clangd holds locked, mitigating Windows "user-mapped section" build failures.
+        "--pch-storage=memory",
         // Let clangd interrogate clang++ for its system include paths (critical on Windows).
         "--query-driver=C:/Program Files/LLVM/bin/clang++.exe"
     ],
+
+    // ── File watcher ──────────────────────────────────────────────────────────
+    // Exclude build output so VS Code doesn't notify clangd on every .pcm write.
+    // Without this, each build causes clangd to immediately re-mmap the new .pcm,
+    // locking it against the next overwrite (Windows user-mapped section error).
+    "files.watcherExclude": {
+        "**/out/build/**": true
+    },
+    "search.exclude": {
+        "**/out/build/**": true
+    },
 
     // ── C/C++ extension ───────────────────────────────────────────────────────
     // Disable the built-in IntelliSense engine; clangd handles it.
