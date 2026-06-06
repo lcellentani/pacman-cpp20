@@ -29,8 +29,15 @@ export constexpr int LAYOUT_CONSOLE_H = 260;
 export constexpr int LAYOUT_WINDOW_W  = LAYOUT_CONSOLE_X + LAYOUT_CONSOLE_W + 20;
 export constexpr int LAYOUT_WINDOW_H  = LAYOUT_CONSOLE_Y + LAYOUT_CONSOLE_H + 20;
 
+export struct MapCoord {
+    int col = 0;
+    int row = 0;
+
+    friend bool operator==(const MapCoord&, const MapCoord&) = default;
+};
+
 export struct PacmanDebugState {
-    int col, row;
+    MapCoord coord;
     int dir_x, dir_y;
     float speed;
     AABB  bounds;
@@ -44,12 +51,12 @@ export enum class GhostId { Blinky, Pinky, Inky, Clyde };
 
 export struct GhostDebugState {
     GhostId    id;
-    int        col, row;
+    MapCoord   coord;
     int        dir_x, dir_y;
     float      speed;
     AABB       bounds;
     GhostState state;
-    int        target_col, target_row; // -1,-1 when not applicable (Frightened/Dead)
+    MapCoord   target; // {-1,-1} when not applicable (Frightened/Dead)
 };
 
 export struct Task {

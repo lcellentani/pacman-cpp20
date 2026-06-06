@@ -34,12 +34,12 @@ void DebugView::draw_ghost_section(const GhostDebugState& ghost) {
     const char* state_names[] = { "Scatter", "Chase", "Frightened", "Dead" };
     const char* state_str = state_names[static_cast<int>(ghost.state)];
 
-    ImGui::Text("pos    %d, %d", ghost.col, ghost.row);
+    ImGui::Text("pos    %d, %d", ghost.coord.col, ghost.coord.row);
     ImGui::Text("vel    %d, %d", ghost.dir_x, ghost.dir_y);
     ImGui::Text("speed  %.1f", ghost.speed);
     ImGui::Text("state  %s", state_str);
-    if (ghost.target_col >= 0)
-        ImGui::Text("target %d, %d", ghost.target_col, ghost.target_row);
+    if (ghost.target.col >= 0)
+        ImGui::Text("target %d, %d", ghost.target.col, ghost.target.row);
     ImGui::Spacing();
     ImGui::Text("AABB   x=%.1f y=%.1f w=%.1f h=%.1f",
         ghost.bounds.x, ghost.bounds.y,
@@ -60,7 +60,7 @@ void DebugView::draw_pacman_section(const PacmanDebugState& pacman) {
     if (!ImGui::CollapsingHeader("Pac-Man", ImGuiTreeNodeFlags_DefaultOpen))
         return;
 
-    ImGui::Text("pos    %.d, %.d", pacman.col, pacman.row);
+    ImGui::Text("pos    %.d, %.d", pacman.coord.col, pacman.coord.row);
     ImGui::Text("vel    %.d, %.d", pacman.dir_x, pacman.dir_y);
     ImGui::Text("speed  %.1f", pacman.speed);
     ImGui::Spacing();

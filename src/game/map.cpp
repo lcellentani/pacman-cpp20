@@ -1,8 +1,12 @@
 module;
 #include <array>
+#include <string>
 #include <string_view>
 
 module game.map;
+
+import engine.log;
+import engine.random;
 
 // Classic Pac-Man wall layout — 28 cols x 31 rows.
 //
@@ -94,6 +98,31 @@ bool Map::is_wall(float px, float py) const {
 
 bool Map::is_wall_at(int col, int row) const {
     return tile_at_index(row, col) == Tile::Wall;
+}
+
+Tile Map::tile_at_index(MapCoord c) const {
+    return tile_at_index(c.row, c.col);
+}
+
+void Map::clear_tile(MapCoord c) {
+    clear_tile(c.col, c.row);
+}
+
+bool Map::is_wall_at(MapCoord c) const {
+    return is_wall_at(c.col, c.row);
+}
+
+MapCoord Map::pick_random_walkable() const {
+    // Rejection sampling. Map is roughly 1/3 walls, so expected attempts ~1.5.
+    constexpr int MAX_ATTEMPTS = 1024;
+    for (int i = 0; i < MAX_ATTEMPTS; ++i) {
+        const int col = random_int(0, MAP_COLS - 1);
+        const int row = random_int(0, MAP_ROWS - 1);
+        if (at(row, col) != Tile::Wall)
+            return MapCoord{ col, row };
+    }
+    log_warn("pick_random_walkable: exhausted " + std::to_string(MAX_ATTEMPTS) + " attempts");
+    return MapCoord{ 0, 0 };
 }
 
 void Map::draw(Renderer& renderer) const {

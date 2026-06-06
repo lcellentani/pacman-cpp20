@@ -26,6 +26,7 @@ public:
 
 	int current_col() const { return col_; }
 	int current_row() const { return row_; }
+	MapCoord current_coord() const { return { col_, row_ }; }
 
 	[[nodiscard]] PacmanDebugState debug_state() const;
 

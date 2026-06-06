@@ -91,7 +91,7 @@ bool Pacman::is_at_tile_center() const {
 }
 
 PacmanDebugState Pacman::debug_state() const {
-	return { col_, row_, current_dir_.x, current_dir_.y, speed_, get_bounds()};
+	return { { col_, row_ }, current_dir_.x, current_dir_.y, speed_, get_bounds() };
 }
 
 int Pacman::pixel_x() const {

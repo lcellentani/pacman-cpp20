@@ -1,4 +1,5 @@
 module;
+#include <array>
 #include "imgui.h"
 #include <string>
 
@@ -8,13 +9,13 @@ import engine.log;
 import game.types;
 
 Stage::Stage(GameConfig config)
-	: config_(config) {
+	: clyde_(GhostId::Clyde), config_(config) {
 }
 
 void Stage::reset() {
 	map_.reset();
 	pacman_.reset(&map_);
-	clyde_.reset(scheduler_);
+	clyde_.reset(scheduler_, &map_);
 
     running_ = true;
     log_info("stage reset");
@@ -42,6 +43,8 @@ void Stage::update(const InputState& input, float dt) {
 
 	pacman_.set_speed(config_.pacman_speed);
 	pacman_.update(dt);
+
+	scheduler_.update(dt);
 
 	if (pacman_.is_at_tile_center()) {
 		int pac_col = pacman_.current_col();
@@ -76,7 +79,8 @@ void Stage::render(Renderer& renderer) {
 		ImVec2{ (float)renderer.game_target_width(), (float)renderer.game_target_height() });
 	ImGui::End();
 
-	debug_.draw(map_, pacman_.debug_state(), {}, config_);
+	std::array<GhostDebugState, 1> ghosts{ clyde_.debug_state() };
+	debug_.draw(map_, pacman_.debug_state(), ghosts, config_);
 	console_.draw();
 
 	renderer.imgui_render();

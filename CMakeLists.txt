@@ -66,6 +66,7 @@ target_sources(pacman
         src/main.cpp
         src/engine/input.cpp
         src/engine/log.cpp
+        src/engine/random.cpp
         src/engine/renderer.cpp
         src/game/config.cpp
         src/game/console.cpp
@@ -77,6 +78,7 @@ target_sources(pacman
         src/game/stage.cpp
     PRIVATE FILE_SET CXX_MODULES FILES
         src/engine/log.ixx
+        src/engine/random.ixx
         src/engine/renderer.ixx
         src/engine/input.ixx
         src/engine/types.ixx

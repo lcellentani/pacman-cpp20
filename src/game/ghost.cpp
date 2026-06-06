@@ -1,16 +1,18 @@
 module;
 #include <coroutine>
-#include <utility>
+#include <string>
 
 module game.ghost;
 
 import engine.log;
+import game.map;
 import game.scheduler;
+import game.types;
 
 struct move_to {
     Ghost& ghost_;
     Scheduler& scheduler_;
-    std::pair<int, int> target_;
+    MapCoord target_;
     std::coroutine_handle<> handle_;
 
     bool await_ready() { return false; }
@@ -23,37 +25,49 @@ struct move_to {
 
     void await_resume() {}
 
-    move_to(Ghost& ghost, Scheduler& scheduler, std::pair<int, int> target)
-        : ghost_(ghost), scheduler_(scheduler), target_(std::move(target)) {}
+    move_to(Ghost& ghost, Scheduler& scheduler, MapCoord target)
+        : ghost_(ghost), scheduler_(scheduler), target_(target) {}
 
     void update(float dt) {
-        ghost_.move_toward(target_.first, target_.second, dt);
-        if (ghost_.ghost_reached(target_.first, target_.second)) {
+        ghost_.move_toward(target_, dt);
+        if (ghost_.ghost_reached(target_)) {
             handle_.resume();
         }
     }
 };
 
-void Ghost::reset(Scheduler& scheduler) {
+Ghost::Ghost(GhostId id) : id_(id) {
+
+}
+
+void Ghost::reset(Scheduler& scheduler, const Map* map) {
+    map_ = map;
+
     behavior_ = wander(scheduler);
     behavior_.handle_.resume();
 }
 
+GhostDebugState Ghost::debug_state() const {
+    return { id_, { 0, 0 }, 0, 0, 0.0f,{ 0.0f, 0.0f, 0.0f, 0.0f }, GhostState::Chase, target_ };
+}
+
 Task Ghost::wander(Scheduler& scheduler) {
     while (true) {
-        std::pair<int, int> target = pick_random_target();
-        co_await move_to(*this, scheduler, target);
+        target_ = pick_random_target();
+        co_await move_to(*this, scheduler, target_);
     }
     co_return;
 }
 
-std::pair<int, int> Ghost::pick_random_target() {
-    return { 0, 0 };
+MapCoord Ghost::pick_random_target() {
+    MapCoord t = map_->pick_random_walkable();
+    log_trace("pick_random_target -> " + std::to_string(t.col) + "," + std::to_string(t.row));
+    return t;
 }
 
-void Ghost::move_toward([[maybe_unused]] int col, [[maybe_unused]] int row,
-                        [[maybe_unused]] float dt) {}
+void Ghost::move_toward([[maybe_unused]] MapCoord target, [[maybe_unused]] float dt) {
+}
 
-bool Ghost::ghost_reached([[maybe_unused]] int col, [[maybe_unused]] int row) {
+bool Ghost::ghost_reached([[maybe_unused]] MapCoord target) {
     return false;
 }
