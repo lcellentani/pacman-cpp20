@@ -7,7 +7,9 @@ module;
 
 module engine.renderer;
 
-Renderer::Renderer(std::string_view title, int width, int height) {
+Renderer::Renderer(std::string_view title, int width, int height,
+                   int game_target_w, int game_target_h)
+    : target_w_(game_target_w), target_h_(game_target_h) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
         throw std::runtime_error(SDL_GetError());
 
@@ -23,6 +25,11 @@ Renderer::Renderer(std::string_view title, int width, int height) {
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!renderer_) throw std::runtime_error(SDL_GetError());
 
+    game_target_ = SDL_CreateTexture(renderer_,
+        SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+        target_w_, target_h_);
+    if (!game_target_) throw std::runtime_error(SDL_GetError());
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -35,9 +42,18 @@ Renderer::~Renderer() {
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
 
+    if (game_target_) SDL_DestroyTexture(game_target_);
     if (renderer_) SDL_DestroyRenderer(renderer_);
     if (window_)   SDL_DestroyWindow(window_);
     SDL_Quit();
+}
+
+void Renderer::begin_game_target() {
+    SDL_SetRenderTarget(renderer_, game_target_);
+}
+
+void Renderer::end_game_target() {
+    SDL_SetRenderTarget(renderer_, nullptr);
 }
 
 void Renderer::clear(Color c) {

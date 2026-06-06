@@ -22,6 +22,7 @@ InputState poll_input() {
     state.left = keys[SDL_SCANCODE_LEFT];
     state.right = keys[SDL_SCANCODE_RIGHT];
     state.debug_toggle = keys[SDL_SCANCODE_D];
+    state.console_toggle = keys[SDL_SCANCODE_GRAVE];
 
     return state;
 }

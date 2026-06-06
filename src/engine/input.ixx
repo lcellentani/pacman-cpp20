@@ -8,6 +8,7 @@ export struct InputState {
     bool left = false;
     bool right = false;
     bool debug_toggle = false;   // D key
+    bool console_toggle = false; // grave/backtick key
 };
 
 export InputState poll_input();

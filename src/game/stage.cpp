@@ -1,5 +1,11 @@
+module;
+#include "imgui.h"
+#include <string>
 
 module game.stage;
+
+import engine.log;
+import game.types;
 
 Stage::Stage(GameConfig config)
 	: map_(), pacman_entity_(), config_(config), debug_() {
@@ -10,6 +16,7 @@ void Stage::reset() {
 	pacman_entity_.reset(&map_);
 
     running_ = true;
+    log_info("stage reset");
 }
 
 void Stage::increment_score(int delta) {
@@ -26,6 +33,10 @@ void Stage::update(const InputState& input, float dt) {
 		debug_.toggle();
 	prev_debug_key_ = input.debug_toggle;
 
+	if (input.console_toggle && !prev_console_key_)
+		console_.toggle();
+	prev_console_key_ = input.console_toggle;
+
 	pacman_entity_.handle_input(input);
 
 	pacman_entity_.set_speed(config_.pacman_speed);
@@ -36,24 +47,37 @@ void Stage::update(const InputState& input, float dt) {
 		int pac_row = pacman_entity_.current_row();
 		if (map_.tile_at_index(pac_row, pac_col) == Tile::Pellet) {
 			map_.clear_tile(pac_col, pac_row);
+			log_trace("pellet eaten at " + std::to_string(pac_col) + "," + std::to_string(pac_row));
 		}
 		else if (map_.tile_at_index(pac_row, pac_col) == Tile::SuperPellet) {
 			map_.clear_tile(pac_col, pac_row);
+			log_info("super pellet eaten");
 		}
 	}
 }
 
 void Stage::render(Renderer& renderer) {
-	renderer.imgui_new_frame(); // ImGui frame starts
-
-    renderer.clear({ 0, 0, 0 });
-
+	// Game world is drawn into an off-screen SDL_Texture, then shown
+	// inside the ImGui "Game" panel.
+	renderer.begin_game_target();
+	renderer.clear({ 0, 0, 0 });
 	map_.draw(renderer);
 	pacman_entity_.draw(renderer);
+	renderer.end_game_target();
+
+	renderer.imgui_new_frame();
+	renderer.clear({ 20, 20, 20 });   // window background behind panels
+
+	ImGui::SetNextWindowPos({ (float)LAYOUT_GAME_X, (float)LAYOUT_GAME_Y }, ImGuiCond_Once);
+	ImGui::Begin("Game", nullptr,
+		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize);
+	ImGui::Image(reinterpret_cast<ImTextureID>(renderer.game_texture_id()),
+		ImVec2{ (float)renderer.game_target_width(), (float)renderer.game_target_height() });
+	ImGui::End();
 
 	debug_.draw(map_, pacman_entity_.debug_state(), {}, config_);
+	console_.draw();
 
-	renderer.imgui_render(); // ImGui flushes
-
-    renderer.present();
+	renderer.imgui_render();
+	renderer.present();
 }

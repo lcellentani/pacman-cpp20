@@ -8,8 +8,8 @@ void DebugView::draw(const Map& map, const PacmanDebugState& pacman,
                      std::span<const GhostDebugState> ghosts, GameConfig& config) {
     if (!visible_) return;
 
-    ImGui::SetNextWindowPos({ WINDOW_W + 10.f, 10.f }, ImGuiCond_Once);
-    ImGui::SetNextWindowSize({ DEBUG_PANEL_W - 20.f, WINDOW_H - 20.f }, ImGuiCond_Once);
+    ImGui::SetNextWindowPos({ (float)LAYOUT_DEBUG_X, (float)LAYOUT_DEBUG_Y }, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({ (float)LAYOUT_DEBUG_W, (float)LAYOUT_DEBUG_H }, ImGuiCond_Once);
 
     ImGui::Begin("Debug");
     draw_pacman_section(pacman);

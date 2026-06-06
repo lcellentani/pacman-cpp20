@@ -15,7 +15,8 @@ export struct Rect {
 
 export class Renderer {
 public:
-    Renderer(std::string_view title, int width, int height);
+    Renderer(std::string_view title, int width, int height,
+             int game_target_w, int game_target_h);
     ~Renderer();
 
     // Non-copyable — owns SDL resources
@@ -32,7 +33,18 @@ public:
     void imgui_new_frame();
     void imgui_render();
 
+    // Off-screen game render target. Game code draws between begin/end;
+    // the resulting texture is shown inside an ImGui panel.
+    void begin_game_target();
+    void end_game_target();
+    [[nodiscard]] void* game_texture_id() const { return static_cast<void*>(game_target_); }
+    [[nodiscard]] int game_target_width()  const { return target_w_; }
+    [[nodiscard]] int game_target_height() const { return target_h_; }
+
 private:
     SDL_Window* window_ = nullptr;
     SDL_Renderer* renderer_ = nullptr;
+    SDL_Texture* game_target_ = nullptr;
+    int target_w_ = 0;
+    int target_h_ = 0;
 };

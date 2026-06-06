@@ -8,7 +8,7 @@ import game.stage;
 import game.types;
 
 int main() {
-    Renderer renderer{ "Pac-Man", WINDOW_W + DEBUG_PANEL_W, WINDOW_H };
+    Renderer renderer{ "Pac-Man", LAYOUT_WINDOW_W, LAYOUT_WINDOW_H, WINDOW_W, WINDOW_H };
     Stage stage{ load_config("config.json") };
 
     stage.reset();

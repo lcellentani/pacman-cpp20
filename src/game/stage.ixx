@@ -6,10 +6,12 @@ import engine.renderer;
 import engine.input;
 import game.concepts;
 import game.config;
+import game.console;
 import game.debug;
 import game.ghost;
 import game.map;
 import game.pacman;
+import game.scheduler;
 
 export class Stage {
 public:
@@ -28,10 +30,14 @@ private:
 	Pacman pacman_entity_;
     Ghost Clyde;
 
+    Scheduler scheduler_;
+
     bool running_ = false;
     int score_ = 0;
 
     GameConfig config_;
     DebugView debug_;
+    ConsoleView console_;
     bool prev_debug_key_ = false;
+    bool prev_console_key_ = false;
 };

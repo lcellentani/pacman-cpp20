@@ -14,6 +14,21 @@ export constexpr int WINDOW_W = MAP_COLS * TILE_SIZE;   // 672
 export constexpr int WINDOW_H = MAP_ROWS * TILE_SIZE;   // 744
 export constexpr int DEBUG_PANEL_W = 430;
 
+// Fixed-layout panel positions / sizes for the ImGui workbench.
+// Game panel hosts an ImGui::Image of the off-screen game texture.
+export constexpr int LAYOUT_GAME_X    = 10;
+export constexpr int LAYOUT_GAME_Y    = 10;
+export constexpr int LAYOUT_DEBUG_X   = LAYOUT_GAME_X + WINDOW_W + 40;
+export constexpr int LAYOUT_DEBUG_Y   = 10;
+export constexpr int LAYOUT_DEBUG_W   = DEBUG_PANEL_W;
+export constexpr int LAYOUT_DEBUG_H   = WINDOW_H;
+export constexpr int LAYOUT_CONSOLE_X = LAYOUT_GAME_X;
+export constexpr int LAYOUT_CONSOLE_Y = LAYOUT_GAME_Y + WINDOW_H + 60;
+export constexpr int LAYOUT_CONSOLE_W = WINDOW_W + DEBUG_PANEL_W + 30;
+export constexpr int LAYOUT_CONSOLE_H = 260;
+export constexpr int LAYOUT_WINDOW_W  = LAYOUT_CONSOLE_X + LAYOUT_CONSOLE_W + 20;
+export constexpr int LAYOUT_WINDOW_H  = LAYOUT_CONSOLE_Y + LAYOUT_CONSOLE_H + 20;
+
 export struct PacmanDebugState {
     int col, row;
     int dir_x, dir_y;
