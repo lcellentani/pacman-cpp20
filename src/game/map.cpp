@@ -132,13 +132,13 @@ void Map::draw(Renderer& renderer) const {
             case Tile::Wall:
                 renderer.draw_rect(
                     { c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE },
-                    { 33, 33, 222 }
+                    { 33, 33, 222, 255 }
                 );
                 break;
             case Tile::Pellet:
                 renderer.draw_rect(
                     { c * TILE_SIZE + 10, r * TILE_SIZE + 10, 4, 4 },
-                    { 255, 255, 255 }
+                    { 255, 255, 255, 255 }
                 );
                 break;
             case Tile::SuperPellet:
@@ -146,7 +146,7 @@ void Map::draw(Renderer& renderer) const {
                     c * TILE_SIZE + HALF_TILE_SIZE,
                     r * TILE_SIZE + HALF_TILE_SIZE,
                     7, 
-                    { 255, 255, 255 });
+                    { 255, 255, 255, 255 });
                 break;
             default: break;
             }

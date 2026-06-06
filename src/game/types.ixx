@@ -55,6 +55,7 @@ export struct GhostDebugState {
     int        dir_x, dir_y;
     float      speed;
     AABB       bounds;
+    Color      color;
     GhostState state;
     MapCoord   target; // {-1,-1} when not applicable (Frightened/Dead)
 };

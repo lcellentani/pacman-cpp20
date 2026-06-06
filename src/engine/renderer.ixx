@@ -6,13 +6,7 @@ module;
 
 export module engine.renderer;
 
-export struct Color {
-    uint8_t r, g, b, a = 255;
-};
-
-export struct Rect {
-    int x, y, w, h;
-};
+import engine.types;
 
 export class Renderer {
 public:

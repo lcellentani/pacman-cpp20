@@ -1,3 +1,6 @@
+module;
+#include <cstdint>
+
 export module engine.types;
 
 export struct AABB {
@@ -7,4 +10,12 @@ export struct AABB {
 
 export struct Vec2 {
 	float x, y;
+};
+
+export struct Color {
+	uint8_t r, g, b, a;
+};
+
+export struct Rect {
+    int x, y, w, h;
 };

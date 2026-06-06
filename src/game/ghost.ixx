@@ -1,5 +1,6 @@
 export module game.ghost;
 
+import engine.types;
 import game.scheduler;
 import game.map;
 import game.types;
@@ -11,6 +12,9 @@ public:
     void reset(Scheduler& scheduler, const Map* map);
 
     [[nodiscard]] GhostDebugState debug_state() const;
+
+    Color get_color() const;
+
 private:
     friend struct move_to;
 

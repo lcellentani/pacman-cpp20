@@ -64,13 +64,13 @@ void Stage::render(Renderer& renderer) {
 	// Game world is drawn into an off-screen SDL_Texture, then shown
 	// inside the ImGui "Game" panel.
 	renderer.begin_game_target();
-	renderer.clear({ 0, 0, 0 });
+	renderer.clear({ 0, 0, 0, 255 });
 	map_.draw(renderer);
 	pacman_.draw(renderer);
 	renderer.end_game_target();
 
 	renderer.imgui_new_frame();
-	renderer.clear({ 20, 20, 20 });   // window background behind panels
+	renderer.clear({ 20, 20, 20, 255 });   // window background behind panels
 
 	ImGui::SetNextWindowPos({ (float)LAYOUT_GAME_X, (float)LAYOUT_GAME_Y }, ImGuiCond_Once);
 	ImGui::Begin("Game", nullptr,

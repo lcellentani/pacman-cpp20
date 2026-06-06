@@ -23,7 +23,7 @@ void Pacman::draw(Renderer& renderer) {
 	renderer.draw_rect(
 		{ static_cast<int>(b.x), static_cast<int>(b.y),
 		  static_cast<int>(b.width), static_cast<int>(b.height) },
-		{ 255, 255, 0 }
+		{ 255, 255, 0, 255 }
 	);
 }
 void Pacman::handle_input(const InputState& input) {

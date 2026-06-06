@@ -8,6 +8,8 @@ module;
 
 module engine.renderer;
 
+import engine.types;
+
 Renderer::Renderer(std::string_view title, int width, int height,
                    int game_target_w, int game_target_h)
     : target_w_(game_target_w), target_h_(game_target_h) {

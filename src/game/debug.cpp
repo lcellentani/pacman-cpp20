@@ -4,6 +4,8 @@ module;
 
 module game.debug;
 
+import engine.types;
+
 void DebugView::draw(const Map& map, const PacmanDebugState& pacman,
                      std::span<const GhostDebugState> ghosts, GameConfig& config) {
     if (!visible_) return;
@@ -86,9 +88,10 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman,
 
             ImU32 color;
             switch (t) {
-            case Tile::Wall:   color = IM_COL32(33, 33, 222, 255); break;
+            case Tile::Wall:  color = IM_COL32(33, 33, 222, 255); break;
             case Tile::Pellet: color = IM_COL32(255, 255, 255, 255); break;
-            default:           color = IM_COL32(20, 20, 20, 255); break;
+            case Tile::SuperPellet: color = IM_COL32(255, 255, 0, 255); break;
+            default: color = IM_COL32(20, 20, 20, 255); break;
             }
 
             ImVec2 tl{
@@ -117,10 +120,11 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman,
         for (const GhostDebugState& ghost : ghosts) {
             float x = ghost.target.col * (MINI_TILE + PADDING);
             float y = ghost.target.row * (MINI_TILE + PADDING);
+            Color color = ghost.color;
 
             ImVec2 tl { origin.x + x, origin.y + y };
             ImVec2 br { tl.x + MINI_TILE, tl.y + MINI_TILE };
-            draw_list->AddRectFilled(tl, br, IM_COL32(255, 0, 0, 255));
+            draw_list->AddRectFilled(tl, br, IM_COL32(color.r, color.g, color.b, color.a));
         }
     }
 

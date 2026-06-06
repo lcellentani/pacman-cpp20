@@ -47,8 +47,18 @@ void Ghost::reset(Scheduler& scheduler, const Map* map) {
     behavior_.handle_.resume();
 }
 
+Color Ghost::get_color() const {
+    switch (id_) {
+    case GhostId::Blinky: return { 255, 0, 0, 255 };
+    case GhostId::Pinky:  return { 255, 184, 255, 255 };
+    case GhostId::Inky:   return { 0, 255, 255, 255 };
+    case GhostId::Clyde:  return { 255, 184, 82, 255 };
+    default: return { 0, 0, 0, 255 };
+    }
+}
+
 GhostDebugState Ghost::debug_state() const {
-    return { id_, { 0, 0 }, 0, 0, 0.0f,{ 0.0f, 0.0f, 0.0f, 0.0f }, GhostState::Chase, target_ };
+    return { id_, { 0, 0 }, 0, 0, 0.0f,{ 0.0f, 0.0f, 0.0f, 0.0f }, get_color(), GhostState::Chase, target_ };
 }
 
 Task Ghost::wander(Scheduler& scheduler) {
