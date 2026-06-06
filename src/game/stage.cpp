@@ -8,12 +8,13 @@ import engine.log;
 import game.types;
 
 Stage::Stage(GameConfig config)
-	: map_(), pacman_entity_(), config_(config), debug_() {
+	: config_(config) {
 }
 
 void Stage::reset() {
 	map_.reset();
-	pacman_entity_.reset(&map_);
+	pacman_.reset(&map_);
+	clyde_.reset(scheduler_);
 
     running_ = true;
     log_info("stage reset");
@@ -37,14 +38,14 @@ void Stage::update(const InputState& input, float dt) {
 		console_.toggle();
 	prev_console_key_ = input.console_toggle;
 
-	pacman_entity_.handle_input(input);
+	pacman_.handle_input(input);
 
-	pacman_entity_.set_speed(config_.pacman_speed);
-	pacman_entity_.update(dt);
+	pacman_.set_speed(config_.pacman_speed);
+	pacman_.update(dt);
 
-	if (pacman_entity_.is_at_tile_center()) {
-		int pac_col = pacman_entity_.current_col();
-		int pac_row = pacman_entity_.current_row();
+	if (pacman_.is_at_tile_center()) {
+		int pac_col = pacman_.current_col();
+		int pac_row = pacman_.current_row();
 		if (map_.tile_at_index(pac_row, pac_col) == Tile::Pellet) {
 			map_.clear_tile(pac_col, pac_row);
 			log_trace("pellet eaten at " + std::to_string(pac_col) + "," + std::to_string(pac_row));
@@ -62,7 +63,7 @@ void Stage::render(Renderer& renderer) {
 	renderer.begin_game_target();
 	renderer.clear({ 0, 0, 0 });
 	map_.draw(renderer);
-	pacman_entity_.draw(renderer);
+	pacman_.draw(renderer);
 	renderer.end_game_target();
 
 	renderer.imgui_new_frame();
@@ -75,7 +76,7 @@ void Stage::render(Renderer& renderer) {
 		ImVec2{ (float)renderer.game_target_width(), (float)renderer.game_target_height() });
 	ImGui::End();
 
-	debug_.draw(map_, pacman_entity_.debug_state(), {}, config_);
+	debug_.draw(map_, pacman_.debug_state(), {}, config_);
 	console_.draw();
 
 	renderer.imgui_render();

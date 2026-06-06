@@ -143,9 +143,9 @@ directly via the stored pointer, and `update` stops movement before entering a w
 tile. `Stage::update` drives a simpler sequence:
 
 ```cpp
-pacman_entity_.handleInput(input);
-pacman_entity_.set_speed(config_.pacman_speed);
-pacman_entity_.update(dt);
+pacman_.handleInput(input);
+pacman_.set_speed(config_.pacman_speed);
+pacman_.update(dt);
 ```
 
 The consequence is that `Map` is a stored dependency on `Pacman` (via `reset`), not a

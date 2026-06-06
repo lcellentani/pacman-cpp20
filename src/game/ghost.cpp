@@ -4,6 +4,7 @@ module;
 
 module game.ghost;
 
+import engine.log;
 import game.scheduler;
 
 struct move_to {
@@ -16,6 +17,7 @@ struct move_to {
 
     void await_suspend(std::coroutine_handle<> handle) {
         handle_ = handle;
+        log_trace("about to register updatable");
         scheduler_.register_updatable(*this);
     }
 
@@ -34,6 +36,7 @@ struct move_to {
 
 void Ghost::reset(Scheduler& scheduler) {
     behavior_ = wander(scheduler);
+    behavior_.handle_.resume();
 }
 
 Task Ghost::wander(Scheduler& scheduler) {

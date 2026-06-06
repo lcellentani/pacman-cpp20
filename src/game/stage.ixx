@@ -27,8 +27,8 @@ public:
 
 private:
     Map map_;
-	Pacman pacman_entity_;
-    Ghost Clyde;
+	Pacman pacman_;
+    Ghost clyde_;
 
     Scheduler scheduler_;
 

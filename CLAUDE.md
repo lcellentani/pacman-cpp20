@@ -120,7 +120,7 @@ Module interface units use `.ixx`; implementation units use `.cpp`. The global m
 - `game.types` — map dimensions (`MAP_COLS=28`, `MAP_ROWS=31`, `TILE_SIZE=24`), window size constants, `PacmanDebugState`, `Dir`
 - `game.map` — 28×31 tile grid (`Wall`, `Pellet`, `SuperPellet`, `Empty`); hardcoded layout; queries by pixel or grid coords; `clear_tile()` for pellet collection
 - `game.pacman` — tile-based movement with pixel-level offset accumulator; `queued_dir_` for buffered input; U-turns allowed immediately; direction changes only at tile centers
-- `game.stage` — orchestrates Map + Pacman; pellet collection and score increment happen here when `pacman_entity_.is_at_tile_center()`
+- `game.stage` — orchestrates Map + Pacman; pellet collection and score increment happen here when `pacman_.is_at_tile_center()`
 - `game.debug` — ImGui panel (toggle with `D`); shows position, velocity, AABB, minimap
 
 **main.cpp** — minimal loop: `poll_input → stage.update → stage.render`.
