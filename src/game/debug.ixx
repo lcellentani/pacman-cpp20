@@ -20,7 +20,7 @@ public:
 private:
     void draw_pacman_section(const PacmanDebugState& pacman);
     void draw_ghost_section(const GhostDebugState& ghost);
-    void draw_map_section(const Map& map, const PacmanDebugState& pacman);
+    void draw_map_section(const Map& map, const PacmanDebugState& pacman, std::span<const GhostDebugState> ghosts);
     void draw_tweaks_section(GameConfig& config);
 
     bool visible_ = false;

@@ -1,4 +1,5 @@
 module;
+#define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <stdexcept>
 #include "imgui.h"
@@ -10,6 +11,7 @@ module engine.renderer;
 Renderer::Renderer(std::string_view title, int width, int height,
                    int game_target_w, int game_target_h)
     : target_w_(game_target_w), target_h_(game_target_h) {
+    SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
         throw std::runtime_error(SDL_GetError());
 

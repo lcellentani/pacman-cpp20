@@ -59,7 +59,7 @@ target_link_libraries(imgui PUBLIC SDL2::SDL2)
 set_target_properties(imgui PROPERTIES CXX_SCAN_FOR_MODULES OFF)
 
 # Pacman executable
-add_executable(pacman)
+add_executable(pacman WIN32)
 
 target_sources(pacman
     PRIVATE
@@ -94,7 +94,11 @@ target_sources(pacman
         src/game/types.ixx
  )
 
-target_link_libraries(pacman PRIVATE SDL2::SDL2 SDL2::SDL2main imgui nlohmann_json::nlohmann_json)
+target_link_libraries(pacman PRIVATE SDL2::SDL2 imgui nlohmann_json::nlohmann_json)
+
+# WIN32 subsystem requires WinMain, but we use int main(). Explicitly set the
+# CRT entry point so lld-link/MSVC calls main() directly instead of WinMain.
+target_link_options(pacman PRIVATE -Xlinker /ENTRY:mainCRTStartup)
 
 if(MSVC)
     # cl.exe and clang-cl: strict conformance, high warnings

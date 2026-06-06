@@ -12,7 +12,7 @@
             "args": [],
             "stopAtEntry": false,
             "environment": [],
-            "console": "externalTerminal",
+            "console": "internalConsole",
             "preLaunchTask": "CMake: build"
         }
     ]

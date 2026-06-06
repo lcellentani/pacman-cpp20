@@ -1,4 +1,5 @@
 module;
+#define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <cstdint>
 #include <string_view>

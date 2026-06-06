@@ -20,7 +20,7 @@ void DebugView::draw(const Map& map, const PacmanDebugState& pacman,
     ImGui::Separator();
     draw_tweaks_section(config);
     ImGui::Separator();
-    draw_map_section(map, pacman);
+    draw_map_section(map, pacman, ghosts);
     ImGui::End();
 }
 
@@ -69,7 +69,7 @@ void DebugView::draw_pacman_section(const PacmanDebugState& pacman) {
         pacman.bounds.width, pacman.bounds.height);
 }
 
-void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman) {
+void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman, std::span<const GhostDebugState> ghosts) {
     if (!ImGui::CollapsingHeader("Map", ImGuiTreeNodeFlags_DefaultOpen))
         return;
 
@@ -103,14 +103,25 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman)
     {
         constexpr float SCALE = (MINI_TILE + PADDING) / static_cast<float>(TILE_SIZE);
         ImVec2 tl{
-            origin.x + pacman.bounds.x * SCALE,
-            origin.y + pacman.bounds.y * SCALE
+            origin.x + pacman.bounds.x * SCALE - 1,
+            origin.y + pacman.bounds.y * SCALE - 1
         };
         ImVec2 br{
-            origin.x + (pacman.bounds.x + pacman.bounds.width)  * SCALE,
-            origin.y + (pacman.bounds.y + pacman.bounds.height) * SCALE
+            origin.x + (pacman.bounds.x + pacman.bounds.width)  * SCALE - 1,
+            origin.y + (pacman.bounds.y + pacman.bounds.height) * SCALE - 1
         };
         draw_list->AddRect(tl, br, IM_COL32(255, 0, 0, 255));
+    }
+
+    {
+        for (const GhostDebugState& ghost : ghosts) {
+            float x = ghost.target.col * (MINI_TILE + PADDING);
+            float y = ghost.target.row * (MINI_TILE + PADDING);
+
+            ImVec2 tl { origin.x + x, origin.y + y };
+            ImVec2 br { tl.x + MINI_TILE, tl.y + MINI_TILE };
+            draw_list->AddRectFilled(tl, br, IM_COL32(255, 0, 0, 255));
+        }
     }
 
     // Advance cursor past the mini-map so ImGui layout continues correctly

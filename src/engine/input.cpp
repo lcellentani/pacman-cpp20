@@ -1,4 +1,5 @@
 module;
+#define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"

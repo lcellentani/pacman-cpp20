@@ -19,7 +19,9 @@ _Update this section at the end of every session — 3–5 lines, present tense.
 
 Phase 2 complete. Phase 3 (coroutine ghost AI) is the active next target. Tile-aligned movement, pellet collection, delta time, ImGui debug panel, and `game.config` with nlohmann/json persistence are all in place. No ghost logic yet — that is the Phase 3 starting point.
 
-Two pre-existing compiler warnings: `-Wreorder-ctor` in `stage.cpp:5` (member init order mismatch) and `found both wmain and main` in the linker (harmless, main is used). Neither is blocking Phase 3.
+One pre-existing compiler warning: `-Wreorder-ctor` in `stage.cpp:5` (member init order mismatch). Not blocking Phase 3.
+
+The executable uses `/SUBSYSTEM:WINDOWS` (no console window) with `/ENTRY:mainCRTStartup`, so `int main()` remains the entry point with no `WinMain` shim. `SDL2::SDL2main` is not linked.
 
 ## Open Items
 
@@ -54,9 +56,17 @@ main.cpp
 ### SDL boundary (verified)
 
 SDL calls are fully contained in the `engine` layer:
-- `src/engine/renderer.cpp` — init, window, renderer, draw calls, present
+- `src/engine/renderer.cpp` — init, window, renderer, draw calls, present; calls `SDL_SetMainReady()` before `SDL_Init`
 - `src/engine/input.cpp` — `SDL_PollEvent`, `SDL_GetKeyboardState`
 - `src/engine/renderer.ixx` — `SDL_Window*`, `SDL_Renderer*` member declarations
+
+Every global module fragment that includes `<SDL.h>` must define `SDL_MAIN_HANDLED` first:
+```cpp
+module;
+#define SDL_MAIN_HANDLED
+#include <SDL.h>
+```
+This prevents `SDL_main.h` from macro-redefining `main` as `SDL_main`. Required in `renderer.cpp`, `renderer.ixx`, and `input.cpp`. Any future engine module including SDL headers must follow the same pattern.
 
 No SDL symbols appear in any `game.*` module. Ghost implementation must stay on the game side of this boundary.
 
