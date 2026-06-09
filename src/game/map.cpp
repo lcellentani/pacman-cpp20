@@ -33,7 +33,7 @@ static constexpr std::array<std::string_view, MAP_ROWS> k_layout = { {
     "WWWWWW.WWWWW.WW.WWWWW.WWWWWW",  // row  9
     "WWWWWW.WWWWW.WW.WWWWW.WWWWWW",  // row 10
     "WWWWWW.WW..........WW.WWWWWW",  // row 11
-    "WWWWWW.WW.WWWWWWWW.WW.WWWWWW",  // row 12
+    "WWWWWW.WW.WWWDDWWW.WW.WWWWWW",  // row 12  — ghost house door
     "WWWWWW.WW.WGGGGGGW.WW.WWWWWW",  // row 13  — ghost house top corridor
     ".......WW.WGGGGGGW.WW.......",  // row 14  — tunnel row (open ends)
     "WWWWWW.WW.WGGGGGGW.WW.WWWWWW",  // row 15  — ghost house bottom corridor
@@ -66,6 +66,7 @@ void Map::reset() {
             case 'W': at(r, c) = Tile::Wall;  break;
             case '.': at(r, c) = Tile::Pellet; break;
 			case 'S': at(r, c) = Tile::SuperPellet; break;
+            case 'D': at(r, c) = Tile::Door; break;
             default:  at(r, c) = Tile::Empty; break;
             }
         }
@@ -93,11 +94,13 @@ void Map::clear_tile(int col, int row) {
 }
 
 bool Map::is_wall(float px, float py) const {
-    return tile_at(px, py) == Tile::Wall;
+    const auto t = tile_at(px, py);
+    return t == Tile::Wall || t == Tile::Door;
 }
 
 bool Map::is_wall_at(int col, int row) const {
-    return tile_at_index(row, col) == Tile::Wall;
+    const auto t = tile_at_index(row, col);
+    return t == Tile::Wall || t == Tile::Door;
 }
 
 Tile Map::tile_at_index(MapCoord c) const {
@@ -118,7 +121,7 @@ MapCoord Map::pick_random_walkable() const {
     for (int i = 0; i < MAX_ATTEMPTS; ++i) {
         const int col = random_int(0, MAP_COLS - 1);
         const int row = random_int(0, MAP_ROWS - 1);
-        if (at(row, col) != Tile::Wall)
+        if (at(row, col) != Tile::Wall && at(row, col) != Tile::Door)
             return MapCoord{ col, row };
     }
     log_warn("pick_random_walkable: exhausted " + std::to_string(MAX_ATTEMPTS) + " attempts");
@@ -145,8 +148,13 @@ void Map::draw(Renderer& renderer) const {
                 renderer.draw_circle(
                     c * TILE_SIZE + HALF_TILE_SIZE,
                     r * TILE_SIZE + HALF_TILE_SIZE,
-                    7, 
+                    7,
                     { 255, 255, 255, 255 });
+                break;
+            case Tile::Door:
+                renderer.draw_rect(
+                    { c * TILE_SIZE + 2, r * TILE_SIZE + TILE_SIZE / 2 - 2, TILE_SIZE - 4, 4 },
+                    { 255, 182, 255, 255 });
                 break;
             default: break;
             }

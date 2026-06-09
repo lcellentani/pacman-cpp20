@@ -12,7 +12,8 @@ export enum class Tile : uint8_t {
     Empty = 0,
     Wall = 1,
     Pellet = 2,
-	SuperPellet = 3,
+    SuperPellet = 3,
+    Door = 4,
 };
 
 export class Map {

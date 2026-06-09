@@ -88,10 +88,11 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman,
 
             ImU32 color;
             switch (t) {
-            case Tile::Wall:  color = IM_COL32(33, 33, 222, 255); break;
-            case Tile::Pellet: color = IM_COL32(255, 255, 255, 255); break;
+            case Tile::Wall:       color = IM_COL32(33, 33, 222, 255); break;
+            case Tile::Pellet:     color = IM_COL32(255, 255, 255, 255); break;
             case Tile::SuperPellet: color = IM_COL32(255, 255, 0, 255); break;
-            default: color = IM_COL32(20, 20, 20, 255); break;
+            case Tile::Door:       color = IM_COL32(255, 182, 255, 255); break;
+            default:               color = IM_COL32(20, 20, 20, 255); break;
             }
 
             ImVec2 tl{

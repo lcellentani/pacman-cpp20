@@ -67,6 +67,7 @@ void Stage::render(Renderer& renderer) {
 	renderer.clear({ 0, 0, 0, 255 });
 	map_.draw(renderer);
 	pacman_.draw(renderer);
+	clyde_.draw(renderer);
 	renderer.end_game_target();
 
 	renderer.imgui_new_frame();

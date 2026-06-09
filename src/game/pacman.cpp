@@ -1,6 +1,5 @@
 module;
 #include <cassert>
-#include <cmath>
 
 module game.pacman;
 
