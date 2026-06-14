@@ -136,11 +136,25 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman,
             {
                 float x = ghost.target.col * (MINI_TILE + PADDING);
                 float y = ghost.target.row * (MINI_TILE + PADDING);
-                
 
                 ImVec2 tl { origin.x + x, origin.y + y };
                 ImVec2 br { tl.x + MINI_TILE, tl.y + MINI_TILE };
                 draw_list->AddRectFilled(tl, br, color);
+            }
+
+            {
+                const ImU32 path_color = IM_COL32(ghost.color.r, ghost.color.g, ghost.color.b, 120);
+                const float cell = MINI_TILE + PADDING;
+                auto tile_center = [&](MapCoord c) {
+                    return ImVec2{ origin.x + (c.col + 0.5f) * cell,
+                                   origin.y + (c.row + 0.5f) * cell };
+                };
+                ImVec2 prev = tile_center(ghost.coord);
+                for (const MapCoord& step : ghost.path) {
+                    ImVec2 cur = tile_center(step);
+                    draw_list->AddLine(prev, cur, path_color, 1.5f);
+                    prev = cur;
+                }
             }
         }
     }

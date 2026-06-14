@@ -1,7 +1,10 @@
 module;
+#include <algorithm>
 #include <array>
+#include <queue>
 #include <string>
 #include <string_view>
+#include <vector>
 
 module game.map;
 
@@ -130,6 +133,48 @@ MapCoord Map::pick_random_walkable() const {
     }
     log_warn("pick_random_walkable: exhausted " + std::to_string(MAX_ATTEMPTS) + " attempts");
     return MapCoord{ 0, 0 };
+}
+
+std::vector<MapCoord> Map::find_path(MapCoord from, MapCoord to) const {
+    if (from == to) return { to };
+
+    constexpr int CELL_COUNT = MAP_ROWS * MAP_COLS;
+    const auto index_of = [](int row, int col) { return row * MAP_COLS + col; };
+
+    std::array<int, CELL_COUNT> parent;
+    parent.fill(-1);
+    const int start = index_of(from.row, from.col);
+    const int goal  = index_of(to.row, to.col);
+
+    std::queue<int> frontier;
+    parent[start] = start;
+    frontier.push(start);
+    bool found = false;
+
+    while (!frontier.empty() && !found) {
+        const int current = frontier.front(); frontier.pop();
+        const int cr = current / MAP_COLS;
+        const int cc = current % MAP_COLS;
+        for (const Dir& d : cardinal_dirs()) {
+            const int nr = cr + d.y;
+            const int nc = cc + d.x;
+            if (nr < 0 || nr >= MAP_ROWS || nc < 0 || nc >= MAP_COLS) continue;
+            if (is_wall_at(nc, nr)) continue;
+            const int next = index_of(nr, nc);
+            if (parent[next] != -1) continue;
+            parent[next] = current;
+            if (next == goal) { found = true; break; }
+            frontier.push(next);
+        }
+    }
+
+    if (parent[goal] == -1) return {};
+
+    std::vector<MapCoord> path;
+    for (int node = goal; node != start; node = parent[node])
+        path.push_back({ node % MAP_COLS, node / MAP_COLS });
+    std::reverse(path.begin(), path.end());
+    return path;
 }
 
 void Map::draw(Renderer& renderer) const {

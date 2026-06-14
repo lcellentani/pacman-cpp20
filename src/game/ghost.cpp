@@ -5,6 +5,7 @@ module;
 #include <limits>
 #include <span>
 #include <string>
+#include <vector>
 
 module game.ghost;
 
@@ -14,6 +15,7 @@ import game.map;
 import game.scheduler;
 import game.types;
 
+// Retained for Phase 3 chase/scatter — authentic arcade greedy targeting. Wander uses BFS.
 struct move_to {
     Ghost& ghost_;
     Scheduler& scheduler_;
@@ -121,17 +123,22 @@ Color Ghost::get_color() const {
 }
 
 GhostDebugState Ghost::debug_state() const {
-    return { id_, { col_, row_ }, current_dir_.x, current_dir_.y, speed_, get_bounds(), get_color(), GhostState::Chase, target_ };
+    return { id_, { col_, row_ }, current_dir_.x, current_dir_.y, speed_, get_bounds(), get_color(), GhostState::Chase, target_, path_ };
 }
 
 Task Ghost::behavior(Scheduler& scheduler) {
     if (id_ != GhostId::Blinky) {
         co_await walk_path(*this, scheduler, path_for_ghost(id_));
     }
-    
+
     while (true) {
         target_ = pick_random_target();
-        co_await move_to(*this, scheduler, target_);
+        path_ = map_->find_path({ col_, row_ }, target_);
+        if (path_.empty()) {
+            log_warn("ghost: no path to target, re-rolling");
+            continue;
+        }
+        co_await walk_path(*this, scheduler, path_);
     }
 }
 
@@ -154,7 +161,13 @@ MapCoord Ghost::pick_random_target() {
 
 std::span<const MapCoord> Ghost::path_for_ghost(GhostId ghost_id) {
     static constexpr std::array pinky_path = { MapCoord{13, 13}, MapCoord{13, 12}, MapCoord{13, 11} };
-    static constexpr std::array inky_path  = { MapCoord{11, 14}, MapCoord{12, 14}, MapCoord{13, 11} };
+    static constexpr std::array inky_path  = {
+        MapCoord{11, 14},
+        MapCoord{12, 14},
+        MapCoord{13, 13},
+        MapCoord{13, 12},
+        MapCoord{13, 11}
+    };
     static constexpr std::array clyde_path = {
         MapCoord{15, 14},
         MapCoord{14, 14},
@@ -214,7 +227,6 @@ void Ghost::move_toward_greedy(MapCoord target, float dt) {
         accumulator_ -= 1.0f;
 
         if (offset_ == 0) {
-            static constexpr std::array<Dir, 4> canonical_dirs = { { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } };
             const Dir reverse_dir{ -current_dir_.x, -current_dir_.y };
 
             std::array<Dir, 4> best_dirs{};
@@ -233,7 +245,7 @@ void Ghost::move_toward_greedy(MapCoord target, float dt) {
                     best_dirs[best_count++] = dir;
             };
 
-            for (const Dir& dir : canonical_dirs) {
+            for (const Dir& dir : cardinal_dirs()) {
                 if (dir.x == reverse_dir.x && dir.y == reverse_dir.y) continue;
                 if (!can_move(col_, row_, dir)) continue;
                 consider(dir);

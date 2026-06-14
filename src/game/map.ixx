@@ -1,6 +1,7 @@
 module;
 #include <array>
 #include <cstdint>
+#include <vector>
 
 export module game.map;
 
@@ -35,6 +36,7 @@ public:
     [[nodiscard]] bool is_wall_at(MapCoord c) const;
 
     [[nodiscard]] MapCoord pick_random_walkable() const;
+    [[nodiscard]] std::vector<MapCoord> find_path(MapCoord from, MapCoord to) const;
 
     void draw(Renderer& renderer) const;
 

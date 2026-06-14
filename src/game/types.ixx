@@ -1,6 +1,8 @@
 module;
+#include <array>
 #include <coroutine>
 #include <exception>
+#include <span>
 
 export module game.types;
 
@@ -45,6 +47,11 @@ export struct PacmanDebugState {
 
 export struct Dir { int x, y; }; // values always in {-1, 0, 1}
 
+export [[nodiscard]] inline std::span<const Dir> cardinal_dirs() {
+    static constexpr std::array<Dir, 4> dirs = { { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } };
+    return dirs;
+}
+
 export enum class GhostState { Scatter, Chase, Frightened, Dead };
 
 export enum class GhostId { Blinky, Pinky, Inky, Clyde };
@@ -58,6 +65,7 @@ export struct GhostDebugState {
     Color      color;
     GhostState state;
     MapCoord   target; // {-1,-1} when not applicable (Frightened/Dead)
+    std::span<const MapCoord> path;
 };
 
 export struct Task {

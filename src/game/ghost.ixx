@@ -1,5 +1,6 @@
 module;
 #include <span>
+#include <vector>
 
 export module game.ghost;
 
@@ -40,6 +41,7 @@ private:
 
     const Map* map_ = nullptr; // pointer, rebindable, nullable
 
+    std::vector<MapCoord> path_;
     Task behavior_;
 
     Task behavior(Scheduler& scheduler);
