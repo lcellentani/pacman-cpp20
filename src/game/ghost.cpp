@@ -1,5 +1,7 @@
 module;
 #include <coroutine>
+#include <array>
+#include <span>
 #include <string>
 #include <cassert>
 
@@ -15,23 +17,60 @@ struct move_to {
     Scheduler& scheduler_;
     MapCoord target_;
     std::coroutine_handle<> handle_;
+    Scheduler::Handle registration_ = 0;
 
     bool await_ready() { return false; }
 
     void await_suspend(std::coroutine_handle<> handle) {
         handle_ = handle;
         log_trace("about to register updatable");
-        scheduler_.register_updatable(*this);
+        registration_ = scheduler_.register_updatable(*this);
     }
 
-    void await_resume() {}
+    void await_resume() {
+        scheduler_.unregister_updatable(registration_);
+    }
 
     move_to(Ghost& ghost, Scheduler& scheduler, MapCoord target)
         : ghost_(ghost), scheduler_(scheduler), target_(target) {}
 
     void update(float dt) {
-        ghost_.move_toward(target_, dt);
+        ghost_.move_toward_greedy(target_, dt);
         if (ghost_.ghost_reached(target_)) {
+            handle_.resume();
+        }
+    }
+};
+
+struct walk_path {
+    Ghost& ghost_;
+    Scheduler& scheduler_;
+    std::span<const MapCoord> path_;
+    size_t step_ = 0;
+    std::coroutine_handle<> handle_;
+    Scheduler::Handle registration_ = 0;
+
+    bool await_ready() { return false; }
+
+    void await_suspend(std::coroutine_handle<> handle) {
+        handle_ = handle;
+        registration_ = scheduler_.register_updatable(*this);
+    }
+
+    void await_resume() {
+        scheduler_.unregister_updatable(registration_);
+    }
+
+    walk_path(Ghost& ghost, Scheduler& scheduler, std::span<const MapCoord> path)
+        : ghost_(ghost), scheduler_(scheduler), path_(path) {}
+
+    void update(float dt) {
+        ghost_.move_toward(path_[step_], dt);
+        if (ghost_.ghost_reached(path_[step_])) {
+            log_trace("ghost reached " + std::to_string(path_[step_].col) + "," + std::to_string(path_[step_].row));
+            step_++;
+        }
+        if (step_ >= path_.size()) {
             handle_.resume();
         }
     }
@@ -57,7 +96,7 @@ void Ghost::reset(Scheduler& scheduler, const Map* map) {
 
 	current_dir_ = { 0, 0 };
 
-    behavior_ = wander(scheduler);
+    behavior_ = behavior(scheduler);
     behavior_.handle_.resume();
 }
 
@@ -81,15 +120,19 @@ Color Ghost::get_color() const {
 }
 
 GhostDebugState Ghost::debug_state() const {
-    return { id_, { 0, 0 }, 0, 0, 0.0f,{ 0.0f, 0.0f, 0.0f, 0.0f }, get_color(), GhostState::Chase, target_ };
+    return { id_, { col_, row_ }, current_dir_.x, current_dir_.y, speed_,get_bounds(), get_color(), GhostState::Chase, target_ };
 }
 
-Task Ghost::wander(Scheduler& scheduler) {
-    while (true) {
-        target_ = pick_random_target();
-        co_await move_to(*this, scheduler, target_);
+Task Ghost::behavior(Scheduler& scheduler) {
+    log_trace("starting scripted movement");
+    if (id_ != GhostId::Blinky) {
+        co_await walk_path(*this, scheduler, path_for_ghost(id_));
     }
-    co_return;
+    log_trace("starting greedy movement");
+    //while (true) {
+    //    target_ = pick_random_target();
+    //    co_await move_to(*this, scheduler, target_);
+    //}
 }
 
 int Ghost::pixel_x() const {
@@ -107,16 +150,91 @@ bool Ghost::can_move(int col, int row, Dir dir) const {
 
 MapCoord Ghost::pick_random_target() {
     MapCoord t = map_->pick_random_walkable();
-    log_trace("pick_random_target -> " + std::to_string(t.col) + "," + std::to_string(t.row));
     return t;
 }
 
+std::span<const MapCoord> Ghost::path_for_ghost(GhostId ghost_id) {
+    static constexpr std::array pinky_path = { MapCoord{13, 13}, MapCoord{13, 12}, MapCoord{13, 11} };
+    static constexpr std::array inky_path  = { MapCoord{11, 14}, MapCoord{12, 14}, MapCoord{13, 11} };
+    static constexpr std::array clyde_path = {
+        MapCoord{15, 14},
+        MapCoord{14, 14},
+        MapCoord{13, 14},
+        MapCoord{13, 13},
+        MapCoord{13, 12},
+        MapCoord{13, 11}
+    };
+
+    if (ghost_id == GhostId::Pinky) {
+        return pinky_path;
+    }
+    if (ghost_id == GhostId::Inky) {
+        return inky_path;
+    }
+    if (ghost_id == GhostId::Clyde) {
+        return clyde_path;
+    }
+
+    // Blinky start at (13,11) so it is already outside and skip the exit step.
+    return {};
+}
+
 void Ghost::move_toward([[maybe_unused]] MapCoord target, [[maybe_unused]] float dt) {
-    // To be implemented in Phase 3
+    accumulator_ += speed_ * dt;
+
+    while(accumulator_ >= 1.0f) {
+        accumulator_ -= 1.0f;
+
+        if (offset_ == 0) {
+            int c = target.col - col_;
+            int r = target.row - row_;
+
+            current_dir_.x = c != 0 ? c / std::abs(c) : 0;
+            current_dir_.y = r != 0 ? r / std::abs(r) : 0;
+        }
+
+        if (current_dir_.x == 0 && current_dir_.y == 0)
+			break;  // no direction — don't advance offset
+
+		// Advance one pixel in the current direction
+		offset_ += 1;
+
+		if (offset_ == TILE_SIZE) {
+			// Completed crossing into the next tile
+			col_ += current_dir_.x;
+			row_ += current_dir_.y;
+			offset_ = 0;
+		}
+    }
+}
+
+void Ghost::move_toward_greedy([[maybe_unused]] MapCoord target, [[maybe_unused]] float dt) {
+    accumulator_ += speed_ * dt;
+
+    while(accumulator_ >= 1.0f) {
+        accumulator_ -= 1.0f;
+
+        if (offset_ == 0) {
+            // At a tile center — this is the only moment decisions are made
+        }
+
+        if (current_dir_.x == 0 && current_dir_.y == 0)
+			break;  // no direction — don't advance offset
+
+		// Advance one pixel in the current direction
+		offset_ += 1;
+
+		if (offset_ == TILE_SIZE) {
+			// Completed crossing into the next tile
+			col_ += current_dir_.x;
+			row_ += current_dir_.y;
+			offset_ = 0;
+		}
+    }
 }
 
 bool Ghost::ghost_reached([[maybe_unused]] MapCoord target) {
-    return false;
+    return col_ == target.col && row_ == target.row;
 }
 
 AABB Ghost::get_bounds() const {

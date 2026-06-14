@@ -118,14 +118,30 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman,
     }
 
     {
+        constexpr float SCALE = (MINI_TILE + PADDING) / static_cast<float>(TILE_SIZE);
         for (const GhostDebugState& ghost : ghosts) {
-            float x = ghost.target.col * (MINI_TILE + PADDING);
-            float y = ghost.target.row * (MINI_TILE + PADDING);
-            Color color = ghost.color;
+            auto color = IM_COL32(ghost.color.r, ghost.color.g, ghost.color.b, ghost.color.a);
+            {
+                ImVec2 tl {
+                    origin.x + ghost.bounds.x * SCALE - 1,
+                    origin.y + ghost.bounds.y * SCALE - 1
+                };
+                ImVec2 br {
+                    origin.x + (ghost.bounds.x + ghost.bounds.width)  * SCALE - 1,
+                    origin.y + (ghost.bounds.y + ghost.bounds.height) * SCALE - 1
+                };
+                draw_list->AddRect(tl, br, color);
+            }
 
-            ImVec2 tl { origin.x + x, origin.y + y };
-            ImVec2 br { tl.x + MINI_TILE, tl.y + MINI_TILE };
-            draw_list->AddRectFilled(tl, br, IM_COL32(color.r, color.g, color.b, color.a));
+            {
+                float x = ghost.target.col * (MINI_TILE + PADDING);
+                float y = ghost.target.row * (MINI_TILE + PADDING);
+                
+
+                ImVec2 tl { origin.x + x, origin.y + y };
+                ImVec2 br { tl.x + MINI_TILE, tl.y + MINI_TILE };
+                draw_list->AddRectFilled(tl, br, color);
+            }
         }
     }
 

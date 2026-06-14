@@ -1,3 +1,6 @@
+module;
+#include <span>
+
 export module game.ghost;
 
 import engine.renderer;
@@ -21,6 +24,7 @@ public:
 
 private:
     friend struct move_to;
+    friend struct walk_path;
 
     GhostId id_;
     MapCoord target_;
@@ -38,7 +42,7 @@ private:
 
     Task behavior_;
 
-    Task wander(Scheduler& scheduler);
+    Task behavior(Scheduler& scheduler);
 
     int pixel_x() const;
     int pixel_y() const;
@@ -46,6 +50,9 @@ private:
     bool can_move(int col, int row, Dir dir) const;
 
     MapCoord pick_random_target();
+    std::span<const MapCoord> path_for_ghost(GhostId ghost_id);
+
     void move_toward(MapCoord target, float dt);
+    void move_toward_greedy(MapCoord target, float dt);
     bool ghost_reached(MapCoord target);
 };
