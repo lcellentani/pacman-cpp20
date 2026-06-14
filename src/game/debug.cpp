@@ -93,6 +93,7 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman,
             case Tile::Pellet:     color = IM_COL32(255, 255, 255, 255); break;
             case Tile::SuperPellet: color = IM_COL32(255, 255, 0, 255); break;
             case Tile::Door:       color = IM_COL32(255, 182, 255, 255); break;
+            case Tile::GhostHouse: color = IM_COL32(60, 40, 40, 255); break;
             default:               color = IM_COL32(20, 20, 20, 255); break;
             }
 

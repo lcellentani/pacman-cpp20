@@ -101,6 +101,7 @@ bool Map::is_wall(float px, float py) const {
 
 bool Map::is_wall_at(int col, int row) const {
     const auto t = tile_at_index(row, col);
+    // GhostHouse is intentionally omitted — ghosts walk through the house; only Door blocks entry.
     return t == Tile::Wall || t == Tile::Door;
 }
 
