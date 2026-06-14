@@ -93,7 +93,7 @@ void Ghost::reset(Scheduler& scheduler, const Map* map) {
     offset_ = 0;
 
     accumulator_ = 0.0f;
-    speed_ = 50.0f;
+    speed_ = 150.0f;
 
     current_dir_ = { 0, 0 };
 
@@ -215,13 +215,13 @@ void Ghost::move_toward_greedy(MapCoord target, float dt) {
 
         if (offset_ == 0) {
             static constexpr std::array<Dir, 4> canonical_dirs = { { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } };
+            const Dir reverse_dir{ -current_dir_.x, -current_dir_.y };
 
             std::array<Dir, 4> best_dirs{};
             int best_count = 0;
             int min_dist = std::numeric_limits<int>::max();
 
-            for (const Dir& dir : canonical_dirs) {
-                if (!can_move(col_, row_, dir)) continue;
+            auto consider = [&](const Dir& dir) {
                 int dx = (col_ + dir.x) - target.col;
                 int dy = (row_ + dir.y) - target.row;
                 int dist = dx * dx + dy * dy;
@@ -231,7 +231,17 @@ void Ghost::move_toward_greedy(MapCoord target, float dt) {
                 }
                 if (dist == min_dist)
                     best_dirs[best_count++] = dir;
+            };
+
+            for (const Dir& dir : canonical_dirs) {
+                if (dir.x == reverse_dir.x && dir.y == reverse_dir.y) continue;
+                if (!can_move(col_, row_, dir)) continue;
+                consider(dir);
             }
+
+            // Dead-end fallback: allow reversal only when no other walkable direction exists.
+            if (best_count == 0 && can_move(col_, row_, reverse_dir))
+                consider(reverse_dir);
 
             if (best_count > 0)
                 current_dir_ = best_dirs[random_int(0, best_count - 1)];
@@ -253,7 +263,6 @@ void Ghost::move_toward_greedy(MapCoord target, float dt) {
 }
 
 bool Ghost::ghost_reached(MapCoord target) {
-    log_trace("ghost_reached " + std::to_string(col_) + "," + std::to_string(row_));
     return col_ == target.col && row_ == target.row;
 }
 
