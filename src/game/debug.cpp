@@ -119,24 +119,29 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman,
     }
 
     {
+        const float cell = MINI_TILE + PADDING;
+        auto tile_center = [&](MapCoord c) {
+            return ImVec2{ origin.x + c.col * cell + MINI_TILE * 0.5f,
+                           origin.y + c.row * cell + MINI_TILE * 0.5f };
+        };
+
         for (const GhostDebugState& ghost : ghosts) {
             auto color = IM_COL32(ghost.color.r, ghost.color.g, ghost.color.b, ghost.color.a);
             {
-                float cx = origin.x + (ghost.bounds.x + ghost.bounds.width  * 0.5f) * SCALE;
-                float cy = origin.y + (ghost.bounds.y + ghost.bounds.height * 0.5f) * SCALE;
-                float r  = MINI_TILE * 0.45f;
-                draw_list->AddCircleFilled({cx, cy}, r, color);
-                draw_list->AddCircle({cx, cy}, r, IM_COL32(0, 0, 0, 180), 0, 1.0f);
+                ImVec2 center = tile_center(ghost.coord);
+                float r = MINI_TILE * 0.45f;
+                draw_list->AddCircleFilled(center, r, color);
+                draw_list->AddCircle(center, r, IM_COL32(0, 0, 0, 180), 0, 1.0f);
             }
 
             if (ghost.target.col >= 0) {
-                float x = ghost.target.col * (MINI_TILE + PADDING);
-                float y = ghost.target.row * (MINI_TILE + PADDING);
+                float x = ghost.target.col * cell;
+                float y = ghost.target.row * cell;
 
-                ImVec2 tl { origin.x + x,             origin.y + y };
-                ImVec2 br { tl.x + MINI_TILE,         tl.y + MINI_TILE };
-                ImVec2 tr { tl.x + MINI_TILE,         tl.y };
-                ImVec2 bl { tl.x,                     tl.y + MINI_TILE };
+                ImVec2 tl { origin.x + x,         origin.y + y };
+                ImVec2 br { tl.x + MINI_TILE,     tl.y + MINI_TILE };
+                ImVec2 tr { tl.x + MINI_TILE,     tl.y };
+                ImVec2 bl { tl.x,                 tl.y + MINI_TILE };
 
                 const ImU32 faded = IM_COL32(ghost.color.r, ghost.color.g, ghost.color.b, 180);
                 draw_list->AddRect(tl, br, color, 0.0f, 0, 1.5f);
@@ -146,11 +151,6 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman,
 
             {
                 const ImU32 path_color = IM_COL32(ghost.color.r, ghost.color.g, ghost.color.b, 120);
-                const float cell = MINI_TILE + PADDING;
-                auto tile_center = [&](MapCoord c) {
-                    return ImVec2{ origin.x + (c.col + 0.5f) * cell,
-                                   origin.y + (c.row + 0.5f) * cell };
-                };
                 ImVec2 prev = tile_center(ghost.coord);
                 for (const MapCoord& step : ghost.path) {
                     ImVec2 cur = tile_center(step);
