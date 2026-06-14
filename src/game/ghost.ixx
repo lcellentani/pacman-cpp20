@@ -18,9 +18,9 @@ public:
     [[nodiscard]] GhostDebugState debug_state() const;
 
     void draw(Renderer& renderer);
-    Color get_color() const;
+    [[nodiscard]] Color get_color() const;
 
-    AABB get_bounds() const;
+    [[nodiscard]] AABB get_bounds() const;
 
 private:
     friend struct move_to;

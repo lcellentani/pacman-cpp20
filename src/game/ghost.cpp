@@ -1,13 +1,15 @@
 module;
-#include <coroutine>
 #include <array>
+#include <cassert>
+#include <coroutine>
+#include <limits>
 #include <span>
 #include <string>
-#include <cassert>
 
 module game.ghost;
 
 import engine.log;
+import engine.random;
 import game.map;
 import game.scheduler;
 import game.types;
@@ -67,7 +69,6 @@ struct walk_path {
     void update(float dt) {
         ghost_.move_toward(path_[step_], dt);
         if (ghost_.ghost_reached(path_[step_])) {
-            log_trace("ghost reached " + std::to_string(path_[step_].col) + "," + std::to_string(path_[step_].row));
             step_++;
         }
         if (step_ >= path_.size()) {
@@ -89,15 +90,15 @@ void Ghost::reset(Scheduler& scheduler, const Map* map) {
     case GhostId::Inky:   col_ = 11; row_ = 14; break;
     case GhostId::Clyde:  col_ = 15; row_ = 14; break;
     }
-	offset_ = 0;
+    offset_ = 0;
 
-	accumulator_ = 0.0f;
-	speed_ = 150.0f;
+    accumulator_ = 0.0f;
+    speed_ = 50.0f;
 
-	current_dir_ = { 0, 0 };
+    current_dir_ = { 0, 0 };
 
     behavior_ = behavior(scheduler);
-    behavior_.handle_.resume();
+    behavior_.resume();
 }
 
 void Ghost::draw(Renderer& renderer) {
@@ -120,19 +121,18 @@ Color Ghost::get_color() const {
 }
 
 GhostDebugState Ghost::debug_state() const {
-    return { id_, { col_, row_ }, current_dir_.x, current_dir_.y, speed_,get_bounds(), get_color(), GhostState::Chase, target_ };
+    return { id_, { col_, row_ }, current_dir_.x, current_dir_.y, speed_, get_bounds(), get_color(), GhostState::Chase, target_ };
 }
 
 Task Ghost::behavior(Scheduler& scheduler) {
-    log_trace("starting scripted movement");
     if (id_ != GhostId::Blinky) {
         co_await walk_path(*this, scheduler, path_for_ghost(id_));
     }
-    log_trace("starting greedy movement");
-    //while (true) {
-    //    target_ = pick_random_target();
-    //    co_await move_to(*this, scheduler, target_);
-    //}
+    
+    while (true) {
+        target_ = pick_random_target();
+        co_await move_to(*this, scheduler, target_);
+    }
 }
 
 int Ghost::pixel_x() const {
@@ -145,12 +145,11 @@ int Ghost::pixel_y() const {
 
 bool Ghost::can_move(int col, int row, Dir dir) const {
     assert(map_ && "can_move called before reset()");
-	return !map_->is_wall_at(col + dir.x, row + dir.y);
+    return !map_->is_wall_at(col + dir.x, row + dir.y);
 }
 
 MapCoord Ghost::pick_random_target() {
-    MapCoord t = map_->pick_random_walkable();
-    return t;
+    return map_->pick_random_walkable();
 }
 
 std::span<const MapCoord> Ghost::path_for_ghost(GhostId ghost_id) {
@@ -179,7 +178,7 @@ std::span<const MapCoord> Ghost::path_for_ghost(GhostId ghost_id) {
     return {};
 }
 
-void Ghost::move_toward([[maybe_unused]] MapCoord target, [[maybe_unused]] float dt) {
+void Ghost::move_toward(MapCoord target, float dt) {
     accumulator_ += speed_ * dt;
 
     while(accumulator_ >= 1.0f) {
@@ -194,46 +193,67 @@ void Ghost::move_toward([[maybe_unused]] MapCoord target, [[maybe_unused]] float
         }
 
         if (current_dir_.x == 0 && current_dir_.y == 0)
-			break;  // no direction — don't advance offset
+            break;  // no direction — don't advance offset
 
-		// Advance one pixel in the current direction
-		offset_ += 1;
+        // Advance one pixel in the current direction
+        offset_ += 1;
 
-		if (offset_ == TILE_SIZE) {
-			// Completed crossing into the next tile
-			col_ += current_dir_.x;
-			row_ += current_dir_.y;
-			offset_ = 0;
-		}
+        if (offset_ == TILE_SIZE) {
+            // Completed crossing into the next tile
+            col_ += current_dir_.x;
+            row_ += current_dir_.y;
+            offset_ = 0;
+        }
     }
 }
 
-void Ghost::move_toward_greedy([[maybe_unused]] MapCoord target, [[maybe_unused]] float dt) {
+void Ghost::move_toward_greedy(MapCoord target, float dt) {
     accumulator_ += speed_ * dt;
 
     while(accumulator_ >= 1.0f) {
         accumulator_ -= 1.0f;
 
         if (offset_ == 0) {
-            // At a tile center — this is the only moment decisions are made
+            static constexpr std::array<Dir, 4> canonical_dirs = { { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } };
+
+            std::array<Dir, 4> best_dirs{};
+            int best_count = 0;
+            int min_dist = std::numeric_limits<int>::max();
+
+            for (const Dir& dir : canonical_dirs) {
+                if (!can_move(col_, row_, dir)) continue;
+                int dx = (col_ + dir.x) - target.col;
+                int dy = (row_ + dir.y) - target.row;
+                int dist = dx * dx + dy * dy;
+                if (dist < min_dist) {
+                    min_dist = dist;
+                    best_count = 0;
+                }
+                if (dist == min_dist)
+                    best_dirs[best_count++] = dir;
+            }
+
+            if (best_count > 0)
+                current_dir_ = best_dirs[random_int(0, best_count - 1)];
         }
 
         if (current_dir_.x == 0 && current_dir_.y == 0)
-			break;  // no direction — don't advance offset
+            break;  // no direction — don't advance offset
 
-		// Advance one pixel in the current direction
-		offset_ += 1;
+        // Advance one pixel in the current direction
+        offset_ += 1;
 
-		if (offset_ == TILE_SIZE) {
-			// Completed crossing into the next tile
-			col_ += current_dir_.x;
-			row_ += current_dir_.y;
-			offset_ = 0;
-		}
+        if (offset_ == TILE_SIZE) {
+            // Completed crossing into the next tile
+            col_ += current_dir_.x;
+            row_ += current_dir_.y;
+            offset_ = 0;
+        }
     }
 }
 
-bool Ghost::ghost_reached([[maybe_unused]] MapCoord target) {
+bool Ghost::ghost_reached(MapCoord target) {
+    log_trace("ghost_reached " + std::to_string(col_) + "," + std::to_string(row_));
     return col_ == target.col && row_ == target.row;
 }
 

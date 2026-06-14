@@ -1,19 +1,18 @@
 module;
-#include <algorithm>
+#include <unordered_set>
 #include <vector>
 
 module game.scheduler;
 
 void Scheduler::unregister_updatable(Handle handle) {
-    removals_.push_back(handle);
+    removals_.insert(handle);
 }
 
 void Scheduler::update(float dt) {
     // Clean up removals from previous frame or current requests
     if (!removals_.empty()) {
         std::erase_if(updatables_, [this](const Entry& e) {
-            return std::any_of(removals_.begin(), removals_.end(), 
-                               [&](Handle h) { return h == e.h; });
+            return removals_.contains(e.h);
         });
         removals_.clear();
     }
@@ -22,12 +21,7 @@ void Scheduler::update(float dt) {
     size_t count = updatables_.size();
     for (size_t i = 0; i < count; ++i) {
         auto& entry = updatables_[i];
-        
-        // Skip if this handle was just unregistered in this frame
-        bool is_removed = std::any_of(removals_.begin(), removals_.end(), 
-                                      [&](Handle h) { return h == entry.h; });
-        
-        if (!is_removed) {
+        if (!removals_.contains(entry.h)) {
             entry.fn(dt);
         }
     }

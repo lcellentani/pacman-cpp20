@@ -93,4 +93,8 @@ export struct Task {
         }
         return *this;
     }
+
+    void resume() {
+        handle_.resume();
+    }
 };

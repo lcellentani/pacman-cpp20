@@ -62,8 +62,8 @@ void DebugView::draw_pacman_section(const PacmanDebugState& pacman) {
     if (!ImGui::CollapsingHeader("Pac-Man", ImGuiTreeNodeFlags_DefaultOpen))
         return;
 
-    ImGui::Text("pos    %.d, %.d", pacman.coord.col, pacman.coord.row);
-    ImGui::Text("vel    %.d, %.d", pacman.dir_x, pacman.dir_y);
+    ImGui::Text("pos    %d, %d", pacman.coord.col, pacman.coord.row);
+    ImGui::Text("vel    %d, %d", pacman.dir_x, pacman.dir_y);
     ImGui::Text("speed  %.1f", pacman.speed);
     ImGui::Spacing();
     ImGui::Text("AABB   x=%.1f y=%.1f w=%.1f h=%.1f",
@@ -78,6 +78,7 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman,
     // Mini tile map — each tile rendered as a small colored square
     constexpr float MINI_TILE = 12.f;
     constexpr float PADDING = 2.f;
+    constexpr float SCALE = (MINI_TILE + PADDING) / static_cast<float>(TILE_SIZE);
 
     ImVec2 origin = ImGui::GetCursorScreenPos();
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -105,7 +106,6 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman,
     }
 
     {
-        constexpr float SCALE = (MINI_TILE + PADDING) / static_cast<float>(TILE_SIZE);
         ImVec2 tl{
             origin.x + pacman.bounds.x * SCALE - 1,
             origin.y + pacman.bounds.y * SCALE - 1
@@ -118,7 +118,6 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman,
     }
 
     {
-        constexpr float SCALE = (MINI_TILE + PADDING) / static_cast<float>(TILE_SIZE);
         for (const GhostDebugState& ghost : ghosts) {
             auto color = IM_COL32(ghost.color.r, ghost.color.g, ghost.color.b, ghost.color.a);
             {
