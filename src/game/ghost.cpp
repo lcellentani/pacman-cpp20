@@ -161,21 +161,8 @@ MapCoord Ghost::pick_random_target() {
 
 std::span<const MapCoord> Ghost::path_for_ghost(GhostId ghost_id) {
     static constexpr std::array pinky_path = { MapCoord{13, 13}, MapCoord{13, 12}, MapCoord{13, 11} };
-    static constexpr std::array inky_path  = {
-        MapCoord{11, 14},
-        MapCoord{12, 14},
-        MapCoord{13, 13},
-        MapCoord{13, 12},
-        MapCoord{13, 11}
-    };
-    static constexpr std::array clyde_path = {
-        MapCoord{15, 14},
-        MapCoord{14, 14},
-        MapCoord{13, 14},
-        MapCoord{13, 13},
-        MapCoord{13, 12},
-        MapCoord{13, 11}
-    };
+    static constexpr std::array inky_path  = { MapCoord{11, 14}, MapCoord{12, 14}, MapCoord{13, 11} };
+    static constexpr std::array clyde_path = { MapCoord{15, 14}, MapCoord{14, 14}, MapCoord{13, 11} };
 
     if (ghost_id == GhostId::Pinky) {
         return pinky_path;

@@ -9,12 +9,13 @@ import engine.log;
 import game.types;
 
 Stage::Stage(GameConfig config)
-	: pinky_(GhostId::Pinky), inky_(GhostId::Inky), clyde_(GhostId::Clyde), config_(config) {
+	: blinky_(GhostId::Blinky), pinky_(GhostId::Pinky), inky_(GhostId::Inky), clyde_(GhostId::Clyde), config_(config) {
 }
 
 void Stage::reset() {
 	map_.reset();
 	pacman_.reset(&map_);
+	blinky_.reset(scheduler_, &map_);
 	pinky_.reset(scheduler_, &map_);
 	inky_.reset(scheduler_, &map_);
 	clyde_.reset(scheduler_, &map_);
@@ -69,6 +70,7 @@ void Stage::render(Renderer& renderer) {
 	renderer.clear({ 0, 0, 0, 255 });
 	map_.draw(renderer);
 	pacman_.draw(renderer);
+	blinky_.draw(renderer);
 	pinky_.draw(renderer);
 	inky_.draw(renderer);
 	clyde_.draw(renderer);
@@ -84,7 +86,7 @@ void Stage::render(Renderer& renderer) {
 		ImVec2{ (float)renderer.game_target_width(), (float)renderer.game_target_height() });
 	ImGui::End();
 
-	std::array<GhostDebugState, 3> ghosts{ pinky_.debug_state(), inky_.debug_state(), clyde_.debug_state() };
+	std::array<GhostDebugState, 4> ghosts{ blinky_.debug_state(), pinky_.debug_state(), inky_.debug_state(), clyde_.debug_state() };
 	debug_.draw(map_, pacman_.debug_state(), ghosts, config_);
 	console_.draw();
 
