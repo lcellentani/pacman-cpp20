@@ -65,8 +65,9 @@ void Map::reset() {
             switch (k_layout[r][c]) {
             case 'W': at(r, c) = Tile::Wall;  break;
             case '.': at(r, c) = Tile::Pellet; break;
-			case 'S': at(r, c) = Tile::SuperPellet; break;
+            case 'S': at(r, c) = Tile::SuperPellet; break;
             case 'D': at(r, c) = Tile::Door; break;
+            case 'G': at(r, c) = Tile::GhostHouse; break;
             default:  at(r, c) = Tile::Empty; break;
             }
         }
@@ -121,7 +122,9 @@ MapCoord Map::pick_random_walkable() const {
     for (int i = 0; i < MAX_ATTEMPTS; ++i) {
         const int col = random_int(0, MAP_COLS - 1);
         const int row = random_int(0, MAP_ROWS - 1);
-        if (at(row, col) != Tile::Wall && at(row, col) != Tile::Door)
+
+        const Tile target_tile = at(row, col);
+        if (target_tile != Tile::Wall && target_tile != Tile::Door && target_tile != Tile::GhostHouse)
             return MapCoord{ col, row };
     }
     log_warn("pick_random_walkable: exhausted " + std::to_string(MAX_ATTEMPTS) + " attempts");

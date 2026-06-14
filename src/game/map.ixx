@@ -14,6 +14,7 @@ export enum class Tile : uint8_t {
     Pellet = 2,
     SuperPellet = 3,
     Door = 4,
+    GhostHouse = 5
 };
 
 export class Map {
@@ -26,16 +27,16 @@ public:
     [[nodiscard]] Tile tile_at_index(int row, int col) const;
     [[nodiscard]] Tile tile_at_index(MapCoord c) const;
 
-	void clear_tile(int col, int row);
-	void clear_tile(MapCoord c);
+    void clear_tile(int col, int row);
+    void clear_tile(MapCoord c);
 
-    bool is_wall(float px, float py) const;
-	bool is_wall_at(int col, int row) const;
-	[[nodiscard]] bool is_wall_at(MapCoord c) const;
+    [[nodiscard]] bool is_wall(float px, float py) const;
+    [[nodiscard]] bool is_wall_at(int col, int row) const;
+    [[nodiscard]] bool is_wall_at(MapCoord c) const;
 
-	[[nodiscard]] MapCoord pick_random_walkable() const;
+    [[nodiscard]] MapCoord pick_random_walkable() const;
 
-	void draw(Renderer& renderer) const;
+    void draw(Renderer& renderer) const;
 
 private:
     // Flat storage: index with at(row, col)
