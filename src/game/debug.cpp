@@ -122,24 +122,26 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman,
         for (const GhostDebugState& ghost : ghosts) {
             auto color = IM_COL32(ghost.color.r, ghost.color.g, ghost.color.b, ghost.color.a);
             {
-                ImVec2 tl {
-                    origin.x + ghost.bounds.x * SCALE - 1,
-                    origin.y + ghost.bounds.y * SCALE - 1
-                };
-                ImVec2 br {
-                    origin.x + (ghost.bounds.x + ghost.bounds.width)  * SCALE - 1,
-                    origin.y + (ghost.bounds.y + ghost.bounds.height) * SCALE - 1
-                };
-                draw_list->AddRect(tl, br, color);
+                float cx = origin.x + (ghost.bounds.x + ghost.bounds.width  * 0.5f) * SCALE;
+                float cy = origin.y + (ghost.bounds.y + ghost.bounds.height * 0.5f) * SCALE;
+                float r  = MINI_TILE * 0.45f;
+                draw_list->AddCircleFilled({cx, cy}, r, color);
+                draw_list->AddCircle({cx, cy}, r, IM_COL32(0, 0, 0, 180), 0, 1.0f);
             }
 
-            {
+            if (ghost.target.col >= 0) {
                 float x = ghost.target.col * (MINI_TILE + PADDING);
                 float y = ghost.target.row * (MINI_TILE + PADDING);
 
-                ImVec2 tl { origin.x + x, origin.y + y };
-                ImVec2 br { tl.x + MINI_TILE, tl.y + MINI_TILE };
-                draw_list->AddRectFilled(tl, br, color);
+                ImVec2 tl { origin.x + x,             origin.y + y };
+                ImVec2 br { tl.x + MINI_TILE,         tl.y + MINI_TILE };
+                ImVec2 tr { tl.x + MINI_TILE,         tl.y };
+                ImVec2 bl { tl.x,                     tl.y + MINI_TILE };
+
+                const ImU32 faded = IM_COL32(ghost.color.r, ghost.color.g, ghost.color.b, 180);
+                draw_list->AddRect(tl, br, color, 0.0f, 0, 1.5f);
+                draw_list->AddLine(tl, br, faded, 1.0f);
+                draw_list->AddLine(tr, bl, faded, 1.0f);
             }
 
             {
