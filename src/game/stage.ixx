@@ -28,6 +28,7 @@ public:
 private:
     Map map_;
 	Pacman pacman_;
+    Ghost pinky_;
     Ghost inky_;
     Ghost clyde_;
 
