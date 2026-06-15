@@ -27,6 +27,11 @@ concept Controllable = requires(T t, const InputState& input) {
 	{ t.handle_input(input) } -> std::same_as<void>;
 };
 
+export template<typename F>
+concept FrameCallback = requires(F f, float dt) {
+	{ f(dt) } -> std::same_as<void>;
+};
+
 // Composed concept — the full contract for a game entity.
 // Any type entering the variant must satisfy all three.
 export template<typename T>

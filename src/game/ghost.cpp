@@ -5,15 +5,49 @@ module;
 #include <limits>
 #include <span>
 #include <string>
-#include <vector>
+//#include <vector>
 
 module game.ghost;
 
 import engine.log;
 import engine.random;
+import game.concepts;
 import game.map;
 import game.scheduler;
 import game.types;
+
+template<FrameCallback F>
+struct wait_for {
+    float timer_ = 0.0f;
+    Scheduler& scheduler_;
+     F callback_;
+    
+    Scheduler::Handle registration_ = 0;
+    std::coroutine_handle<> handle_;
+
+    wait_for(float delay, Scheduler& scheduler, F callback) :
+        timer_(delay), scheduler_(scheduler), callback_(callback) {}
+    
+    bool await_ready() { return false; }
+
+    void await_suspend(std::coroutine_handle<> handle) {
+        handle_ = handle;
+        registration_ = scheduler_.register_updatable(*this);
+    }
+
+    void await_resume() {
+        scheduler_.unregister_updatable(registration_);
+    }
+
+    void update(float dt) {
+        callback_(dt);
+
+        timer_ -= dt;
+        if (timer_ <= 0.f) {
+            handle_.resume();
+        }
+    }
+};
 
 // Retained for Phase 3 chase/scatter — authentic arcade greedy targeting. Wander uses BFS.
 struct move_to {
@@ -132,13 +166,15 @@ Task Ghost::behavior(Scheduler& scheduler) {
     }
 
     while (true) {
-        target_ = pick_random_target();
-        path_ = map_->find_path({ col_, row_ }, target_);
-        if (path_.empty()) {
-            log_warn("ghost: no path to target, re-rolling");
-            continue;
-        }
-        co_await walk_path(*this, scheduler, path_);
+        target_ = pick_scatter_target_for_ghost(id_);
+        co_await wait_for(7.0f, scheduler, [this](float dt) {
+            move_toward_greedy(target_, dt);
+        });
+
+        co_await wait_for(20.0f, scheduler, [this](float dt) {
+            target_ = pick_random_target();
+            move_toward_greedy(target_, dt);
+        });
     }
 }
 
@@ -153,6 +189,17 @@ int Ghost::pixel_y() const {
 bool Ghost::can_move(int col, int row, Dir dir) const {
     assert(map_ && "can_move called before reset()");
     return !map_->is_wall_at(col + dir.x, row + dir.y);
+}
+
+MapCoord Ghost::pick_scatter_target_for_ghost(GhostId ghost_id) const {
+    switch (ghost_id) {
+    case GhostId::Blinky: return { 25, 0 }; // top-right corner
+    case GhostId::Pinky:  return { 2, 0 };  // top-left corner
+    case GhostId::Inky:   return { 27, 35 }; // bottom-right corner
+    case GhostId::Clyde:  return { 0, 35 };  // bottom-left corner
+    default: return { 0, 0 };
+    }
+    return { 0, 0 };
 }
 
 MapCoord Ghost::pick_random_target() {
@@ -207,6 +254,8 @@ void Ghost::move_toward(MapCoord target, float dt) {
     }
 }
 
+// Target refreshed every frame; move_toward_greedy consumes it
+// at tile boundaries (offset_ == 0) per original arcade behaviour.
 void Ghost::move_toward_greedy(MapCoord target, float dt) {
     accumulator_ += speed_ * dt;
 

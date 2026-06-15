@@ -16,9 +16,9 @@ void Stage::reset() {
 	map_.reset();
 	pacman_.reset(&map_);
 	blinky_.reset(scheduler_, &map_);
-	pinky_.reset(scheduler_, &map_);
-	inky_.reset(scheduler_, &map_);
-	clyde_.reset(scheduler_, &map_);
+	//pinky_.reset(scheduler_, &map_);
+	//inky_.reset(scheduler_, &map_);
+	//clyde_.reset(scheduler_, &map_);
 
     running_ = true;
     log_info("stage reset");

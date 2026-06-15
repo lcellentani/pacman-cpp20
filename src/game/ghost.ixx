@@ -51,6 +51,7 @@ private:
 
     bool can_move(int col, int row, Dir dir) const;
 
+    MapCoord pick_scatter_target_for_ghost(GhostId ghost_id) const;
     MapCoord pick_random_target();
     std::span<const MapCoord> path_for_ghost(GhostId ghost_id);
 
