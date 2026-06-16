@@ -3,6 +3,7 @@ module;
 #include <cassert>
 #include <coroutine>
 #include <limits>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -17,14 +18,14 @@ import game.types;
 
 template<FrameCallback F>
 struct wait_for {
-    float timer_ = 0.0f;
+    std::optional<float> timer_ = 0.0f;
     Scheduler& scheduler_;
     F callback_;
     
     Scheduler::Handle registration_ = 0;
     std::coroutine_handle<> handle_;
 
-    wait_for(float delay, Scheduler& scheduler, F callback) :
+    wait_for(std::optional<float> delay, Scheduler& scheduler, F callback) :
         timer_(delay), scheduler_(scheduler), callback_(callback) {}
     
     bool await_ready() { return false; }
@@ -41,37 +42,12 @@ struct wait_for {
     void update(float dt) {
         callback_(dt);
 
-        timer_ -= dt;
+        if (!timer_) return;  // indefinite — never resumes on its own
+
+        *timer_ -= dt;
         if (timer_ <= 0.f) {
             handle_.resume();
         }
-    }
-};
-
-template<FrameCallback F>
-struct chase {
-    Scheduler& scheduler_;
-    F callback_;
-    
-    Scheduler::Handle registration_ = 0;
-    std::coroutine_handle<> handle_;
-
-    chase(Scheduler& scheduler, F callback) :
-        scheduler_(scheduler), callback_(callback) {}
-    
-    bool await_ready() { return false; }
-
-    void await_suspend(std::coroutine_handle<> handle) {
-        handle_ = handle;
-        registration_ = scheduler_.register_updatable(*this);
-    }
-
-    void await_resume() {
-        scheduler_.unregister_updatable(registration_);
-    }
-
-    void update(float dt) {
-        callback_(dt);
     }
 };
 
@@ -138,9 +114,7 @@ struct walk_path {
     }
 };
 
-Ghost::Ghost(GhostId id) : id_(id) {
-
-}
+Ghost::Ghost(GhostId id) : id_(id) {}
 
 void Ghost::reset(Scheduler& scheduler, const Map* map, const GameState* game_state) {
     map_ = map;
@@ -190,8 +164,7 @@ Task Ghost::behavior(Scheduler& scheduler) {
     static constexpr std::array<std::pair<float, float>, 4> phase_timings = {{
         { 7.0f, 20.0f },
         { 7.0f, 20.0f },
-        { 5.0f, 5.0f },
-        { 5.0f, 5.0f }
+        { 5.0f, 20.0f }
     }};
 
     if (id_ != GhostId::Blinky) {
@@ -215,8 +188,14 @@ Task Ghost::behavior(Scheduler& scheduler) {
             });
         }
 
+        log_trace("entering scatter phase for 5.0 seconds");
+            target_ = pick_scatter_target_for_ghost(id_);
+            co_await wait_for(5.0f, scheduler, [this](float dt) {
+                move_toward_greedy(target_, dt);
+            });
+
         log_trace("entering infinite chase phase");
-        co_await chase(scheduler, [this](float dt) {
+        co_await wait_for(std::nullopt, scheduler, [this](float dt) {
             target_ = pick_chase_target_for_ghost(id_);
             move_toward_greedy(target_, dt);
         });
