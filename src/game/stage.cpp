@@ -15,13 +15,12 @@ Stage::Stage(GameConfig config)
 void Stage::reset() {
 	map_.reset();
 	pacman_.reset(&map_);
-	blinky_.reset(scheduler_, &map_);
-	//pinky_.reset(scheduler_, &map_);
-	//inky_.reset(scheduler_, &map_);
-	//clyde_.reset(scheduler_, &map_);
+	blinky_.reset(scheduler_, &map_, &game_state_);
+	//pinky_.reset(scheduler_, &map_, &game_state_);
+	//inky_.reset(scheduler_, &map_, &game_state_);
+	//clyde_.reset(scheduler_, &map_, &game_state_);
 
     running_ = true;
-    log_info("stage reset");
 }
 
 void Stage::increment_score(int delta) {
@@ -54,13 +53,15 @@ void Stage::update(const InputState& input, float dt) {
 		int pac_row = pacman_.current_row();
 		if (map_.tile_at_index(pac_row, pac_col) == Tile::Pellet) {
 			map_.clear_tile(pac_col, pac_row);
-			log_trace("pellet eaten at " + std::to_string(pac_col) + "," + std::to_string(pac_row));
 		}
 		else if (map_.tile_at_index(pac_row, pac_col) == Tile::SuperPellet) {
 			map_.clear_tile(pac_col, pac_row);
-			log_info("super pellet eaten");
 		}
 	}
+
+	game_state_.pacman_tile = pacman_.current_coord();
+	game_state_.pacman_dir = pacman_.current_dir();
+	//game_state_.blinky_tile = blinky_.current_coord();
 }
 
 void Stage::render(Renderer& renderer) {

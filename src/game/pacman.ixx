@@ -28,6 +28,8 @@ public:
 	int current_row() const { return row_; }
 	MapCoord current_coord() const { return { col_, row_ }; }
 
+	Dir current_dir() const { return current_dir_; }
+
 	[[nodiscard]] PacmanDebugState debug_state() const;
 
 private:

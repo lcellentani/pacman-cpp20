@@ -12,6 +12,7 @@ import game.ghost;
 import game.map;
 import game.pacman;
 import game.scheduler;
+import game.types;
 
 export class Stage {
 public:
@@ -33,12 +34,14 @@ private:
     Ghost inky_;
     Ghost clyde_;
 
+    GameState game_state_ {};
+    GameConfig config_;
+
     Scheduler scheduler_;
 
     bool running_ = false;
     int score_ = 0;
 
-    GameConfig config_;
     DebugView debug_;
     ConsoleView console_;
     bool prev_debug_key_ = false;

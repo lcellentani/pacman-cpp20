@@ -5,7 +5,6 @@ module;
 #include <limits>
 #include <span>
 #include <string>
-//#include <vector>
 
 module game.ghost;
 
@@ -20,7 +19,7 @@ template<FrameCallback F>
 struct wait_for {
     float timer_ = 0.0f;
     Scheduler& scheduler_;
-     F callback_;
+    F callback_;
     
     Scheduler::Handle registration_ = 0;
     std::coroutine_handle<> handle_;
@@ -49,7 +48,33 @@ struct wait_for {
     }
 };
 
-// Retained for Phase 3 chase/scatter — authentic arcade greedy targeting. Wander uses BFS.
+template<FrameCallback F>
+struct chase {
+    Scheduler& scheduler_;
+    F callback_;
+    
+    Scheduler::Handle registration_ = 0;
+    std::coroutine_handle<> handle_;
+
+    chase(Scheduler& scheduler, F callback) :
+        scheduler_(scheduler), callback_(callback) {}
+    
+    bool await_ready() { return false; }
+
+    void await_suspend(std::coroutine_handle<> handle) {
+        handle_ = handle;
+        registration_ = scheduler_.register_updatable(*this);
+    }
+
+    void await_resume() {
+        scheduler_.unregister_updatable(registration_);
+    }
+
+    void update(float dt) {
+        callback_(dt);
+    }
+};
+
 struct move_to {
     Ghost& ghost_;
     Scheduler& scheduler_;
@@ -117,8 +142,9 @@ Ghost::Ghost(GhostId id) : id_(id) {
 
 }
 
-void Ghost::reset(Scheduler& scheduler, const Map* map) {
+void Ghost::reset(Scheduler& scheduler, const Map* map, const GameState* game_state) {
     map_ = map;
+    game_state_ = game_state;
 
     switch (id_) {
     case GhostId::Blinky: col_ = 13; row_ = 11; break;
@@ -161,18 +187,37 @@ GhostDebugState Ghost::debug_state() const {
 }
 
 Task Ghost::behavior(Scheduler& scheduler) {
+    static constexpr std::array<std::pair<float, float>, 4> phase_timings = {{
+        { 7.0f, 20.0f },
+        { 7.0f, 20.0f },
+        { 5.0f, 5.0f },
+        { 5.0f, 5.0f }
+    }};
+
     if (id_ != GhostId::Blinky) {
         co_await walk_path(*this, scheduler, path_for_ghost(id_));
     }
 
     while (true) {
-        target_ = pick_scatter_target_for_ghost(id_);
-        co_await wait_for(7.0f, scheduler, [this](float dt) {
-            move_toward_greedy(target_, dt);
-        });
+        for(auto[scatter_time, chase_time] : phase_timings) {
+            // scatter phase
+            log_trace("entering scatter phase for " + std::to_string(scatter_time) + " seconds");
+            target_ = pick_scatter_target_for_ghost(id_);
+            co_await wait_for(scatter_time, scheduler, [this](float dt) {
+                move_toward_greedy(target_, dt);
+            });
 
-        co_await wait_for(20.0f, scheduler, [this](float dt) {
-            target_ = pick_random_target();
+            // chase phase
+            log_trace("entering chase phase for " + std::to_string(chase_time) + " seconds");
+            co_await wait_for(chase_time, scheduler, [this](float dt) {
+                target_ = pick_chase_target_for_ghost(id_);
+                move_toward_greedy(target_, dt);
+            });
+        }
+
+        log_trace("entering infinite chase phase");
+        co_await chase(scheduler, [this](float dt) {
+            target_ = pick_chase_target_for_ghost(id_);
             move_toward_greedy(target_, dt);
         });
     }
@@ -192,14 +237,35 @@ bool Ghost::can_move(int col, int row, Dir dir) const {
 }
 
 MapCoord Ghost::pick_scatter_target_for_ghost(GhostId ghost_id) const {
-    switch (ghost_id) {
-    case GhostId::Blinky: return { 25, 0 }; // top-right corner
-    case GhostId::Pinky:  return { 2, 0 };  // top-left corner
-    case GhostId::Inky:   return { 27, 35 }; // bottom-right corner
-    case GhostId::Clyde:  return { 0, 35 };  // bottom-left corner
-    default: return { 0, 0 };
+    if ( ghost_id == GhostId::Blinky) {
+        return { 25, 0 }; // top-right corner
+    }
+    if (ghost_id == GhostId::Pinky) {
+        return { 2, 0 };  // top-left corner
+    }
+    if (ghost_id == GhostId::Inky) {
+        return { 27, 35 }; // bottom-right corner
+    }
+    if (ghost_id == GhostId::Clyde) {
+        return { 0, 35 };  // bottom-left corner
     }
     return { 0, 0 };
+}
+
+MapCoord Ghost::pick_chase_target_for_ghost(GhostId ghost_id) const {
+   if ( ghost_id == GhostId::Blinky) {
+        return game_state_->pacman_tile; // Blinky targets Pac-Man's current tile directly
+    }
+    if (ghost_id == GhostId::Pinky) {
+        return { 0, 0 };  // top-left corner
+    }
+    if (ghost_id == GhostId::Inky) {
+        return { 0, 0 }; // bottom-right corner
+    }
+    if (ghost_id == GhostId::Clyde) {
+        return { 0, 0 };  // bottom-left corner
+    }
+    return { 0, 0 }; 
 }
 
 MapCoord Ghost::pick_random_target() {

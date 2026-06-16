@@ -14,14 +14,16 @@ export class Ghost {
 public:
     explicit Ghost(GhostId id);
 
-    void reset(Scheduler& scheduler, const Map* map);
+    void reset(Scheduler& scheduler, const Map* map, const GameState* game_state);
     
-    [[nodiscard]] GhostDebugState debug_state() const;
+    MapCoord current_coord() const { return { col_, row_ }; }
 
     void draw(Renderer& renderer);
+    
     [[nodiscard]] Color get_color() const;
-
     [[nodiscard]] AABB get_bounds() const;
+
+     [[nodiscard]] GhostDebugState debug_state() const;
 
 private:
     friend struct move_to;
@@ -40,6 +42,7 @@ private:
     float speed_ = 0.0f;
 
     const Map* map_ = nullptr; // pointer, rebindable, nullable
+    const GameState* game_state_ = nullptr;
 
     std::vector<MapCoord> path_;
     Task behavior_;
@@ -52,6 +55,7 @@ private:
     bool can_move(int col, int row, Dir dir) const;
 
     MapCoord pick_scatter_target_for_ghost(GhostId ghost_id) const;
+    MapCoord pick_chase_target_for_ghost(GhostId ghost_id) const;
     MapCoord pick_random_target();
     std::span<const MapCoord> path_for_ghost(GhostId ghost_id);
 

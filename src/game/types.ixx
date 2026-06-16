@@ -68,6 +68,13 @@ export struct GhostDebugState {
     std::span<const MapCoord> path;
 };
 
+export struct GameState {
+    MapCoord pacman_tile;
+    Dir pacman_dir;
+
+    MapCoord blinky_tile;
+};
+
 export struct Task {
     struct promise_type {
         Task get_return_object() {
