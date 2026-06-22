@@ -17,9 +17,7 @@ A fully playable Pac-Man clone built with C++20 as a deliberate learning project
 
 _Update this section at the end of every session — 3–5 lines, present tense._
 
-Phase 2 complete. Phase 3 (coroutine ghost AI) is the active next target. Tile-aligned movement, pellet collection, delta time, ImGui debug panel, and `game.config` with nlohmann/json persistence are all in place. No ghost logic yet — that is the Phase 3 starting point.
-
-One pre-existing compiler warning: `-Wreorder-ctor` in `stage.cpp:5` (member init order mismatch). Not blocking Phase 3.
+Phase 3 is well underway. All four ghosts (Blinky, Pinky, Inky, Clyde) are implemented with coroutine-based scatter/chase cycles using `wait_for` and `walk_path` awaitables. `game.scheduler`, `engine.log`, `engine.random`, and `game.console` have been added to support ghost AI and in-game logging. `GhostDebugState` and `GameState` are defined in `game.types` and wired up. Pinky, Inky, and Clyde chase targets are still stubs — that is the active next target.
 
 The executable uses `/SUBSYSTEM:WINDOWS` (no console window) with `/ENTRY:mainCRTStartup`, so `int main()` remains the entry point with no `WinMain` shim. `SDL2::SDL2main` is not linked.
 
@@ -27,10 +25,11 @@ The executable uses `/SUBSYSTEM:WINDOWS` (no console window) with `/ENTRY:mainCR
 
 _Update this list at the end of every session._
 
-- Ghost entities: no implementation yet — Phase 3 starting point
-- `InputPoller` refactor deferred to Phase 3; edge detection currently lives in `Stage`
+- Pinky, Inky, Clyde chase targeting — all three stub-return `{0,0}`; only Blinky targets Pac-Man's tile
+- `phase_timings` array in `Ghost::behavior` is declared as 4 pairs but only 3 initializers are provided (silent truncation)
+- `Ghost::debug_state()` hardcodes `GhostState::Chase` — ghost does not track its actual current state
+- `InputPoller` refactor deferred — edge detection still lives in `Stage` via `prev_debug_key_` / `prev_console_key_`
 - `WallQuery`/`WorldQuery` concepts on hold until a second world query source exists
-- Ghost debug state structs: design before implementing ghost rendering (follow `PacmanDebugState` pattern)
 - Score display deferred to Phase 4 (`std::format`)
 
 ## Phase 3 Context
@@ -46,12 +45,27 @@ main.cpp
          ├── engine.input
          ├── game.concepts
          ├── game.config
+         ├── game.console
          ├── game.debug
+         ├── game.ghost
          ├── game.map
-         └── game.pacman
+         ├── game.pacman
+         ├── game.scheduler
+         └── game.types
+
+game.ghost imports:
+         ├── engine.log
+         ├── engine.random
+         ├── game.concepts
+         ├── game.map
+         ├── game.scheduler
+         └── game.types
+
+game.scheduler imports:
+         └── game.concepts
 ```
 
-`main.cpp` is the only consumer of `game.stage`. Ghost modules (`game.ghost` or similar) will be added as imports inside `stage.ixx`, not in `main.cpp`.
+`main.cpp` is the only consumer of `game.stage`. Ghost modules are wired as imports inside `stage.ixx` — not in `main.cpp`.
 
 ### SDL boundary (verified)
 
@@ -80,13 +94,14 @@ All concepts defined in `src/game/concepts.ixx`:
 | `Updatable<T>` | `t.update(dt) -> void` |
 | `Collidable<T>` | `t.get_bounds() -> AABB` |
 | `Controllable<T>` | `t.handle_input(input) -> void` |
+| `FrameCallback<F>` | `f(dt) -> void` |
 | `GameEntity<T>` | `Drawable && Updatable && Collidable` (composed) |
 
-Ghost types must satisfy `GameEntity`. Add a `static_assert(GameEntity<Ghost>, ...)` in the ghost module interface, following the pattern at `src/game/pacman.ixx:52`.
+`Ghost` satisfies `Drawable` and `Collidable` but deliberately does **not** satisfy `Updatable`. Ghost per-frame work is driven by `Scheduler`-registered coroutine awaitables — there is no `update(float dt)` entry point on `Ghost`. Do not add one to make the concept fit; that would break the coroutine model. Do not add `static_assert(GameEntity<Ghost>, ...)` — the constraint does not apply to coroutine-driven entities.
 
 ### Debug state pattern
 
-Follow `PacmanDebugState` (defined in `game.types`) when designing ghost debug structs. Design the ghost debug state struct before implementing ghost rendering — this is an open item.
+`GhostDebugState` (defined in `game.types`) follows the `PacmanDebugState` pattern. It carries `id`, `coord`, `dir_x/y`, `speed`, `bounds`, `color`, `state`, `target`, and `path`. `Ghost::debug_state()` is implemented. Note: `state` is currently hardcoded to `GhostState::Chase` — tracking actual coroutine state is an open item.
 
 ## Build
 
@@ -112,7 +127,7 @@ The following graph is intentionally high-level and the authoritative reference 
 ```
 main.cpp
 └── Stage ──> Renderer, InputState, GameConfig
-         └── Map, Pacman, DebugView
+         └── Map, Pacman, Ghost×4, Scheduler, DebugView, ConsoleView
 ```
 
 Module interface units use `.ixx`; implementation units use `.cpp`. The global module fragment (`module;` + `#include`) is the only place external headers appear — **`main.cpp` is not a module unit and cannot use a global module fragment**; `#include` goes directly in the file body there.
@@ -120,18 +135,23 @@ Module interface units use `.ixx`; implementation units use `.cpp`. The global m
 ## Architecture
 
 **engine layer** — platform-facing, no game logic:
-- `engine.renderer` — SDL2 window, pixel/rect/circle draw, ImGui frame management`
+- `engine.renderer` — SDL2 window, pixel/rect/circle draw, ImGui frame management
 - `engine.input` — polls SDL events, returns an `InputState` snapshot each frame
 - `engine.types` — `AABB`, `Vec2`
+- `engine.log` — singleton ring-buffer logger (capacity 2048); `log_trace/info/warn/error` free functions; `LogEntry` carries level + seconds-since-start timestamp
+- `engine.random` — `std::mt19937` singleton; `random_int(lo, hi)` / `random_float(lo, hi)` free functions (inclusive both ends)
 
 **game layer** — logic, no SDL details:
 - `game.config` — `GameConfig` struct (runtime-mutable values: speeds, timers); `load_config` / `save_config` using nlohmann/json exception-free API
-- `game.concepts` — `Drawable`, `Updatable`, `Collidable`, `GameEntity` (all concept-based, no virtual dispatch)
-- `game.types` — map dimensions (`MAP_COLS=28`, `MAP_ROWS=31`, `TILE_SIZE=24`), window size constants, `PacmanDebugState`, `Dir`
+- `game.concepts` — `Drawable`, `Updatable`, `Collidable`, `Controllable`, `FrameCallback`, `GameEntity` (all concept-based, no virtual dispatch)
+- `game.types` — map dimensions (`MAP_COLS=28`, `MAP_ROWS=31`, `TILE_SIZE=24`), window layout constants (`LAYOUT_*`), `PacmanDebugState`, `GhostDebugState`, `GhostState`, `GhostId`, `GameState`, `MapCoord`, `Dir`, `cardinal_dirs()`, `Task` (coroutine handle RAII wrapper)
 - `game.map` — 28×31 tile grid (`Wall`, `Pellet`, `SuperPellet`, `Empty`); hardcoded layout; queries by pixel or grid coords; `clear_tile()` for pellet collection
 - `game.pacman` — tile-based movement with pixel-level offset accumulator; `queued_dir_` for buffered input; U-turns allowed immediately; direction changes only at tile centers
-- `game.stage` — orchestrates Map + Pacman; pellet collection and score increment happen here when `pacman_.is_at_tile_center()`
+- `game.ghost` — `Ghost` class; coroutine behavior (scatter/chase loop via `wait_for` and `walk_path` awaitables); `move_toward_greedy` greedy pathfinding (no reversal except dead-ends); per-ghost scatter targets and chase personality via `pick_scatter/chase_target_for_ghost`
+- `game.scheduler` — `Scheduler` class; registers `Updatable` callables by handle each frame; used by coroutine awaitables (`wait_for`, `move_to`, `walk_path`) to receive per-frame ticks; supports deferred unregistration during iteration
+- `game.stage` — orchestrates Map, Pacman, Ghost×4, Scheduler, DebugView, ConsoleView; pellet collection and score increment happen here when `pacman_.is_at_tile_center()`; maintains `GameState` shared with ghosts
 - `game.debug` — ImGui panel (toggle with `D`); shows position, velocity, AABB, minimap
+- `game.console` — `ConsoleView` ImGui panel (toggle with `C`); displays `engine.log` entries with level filter and text filter; accepts dev commands via `dispatch_command`
 
 **main.cpp** — minimal loop: `poll_input → stage.update → stage.render`.
 
