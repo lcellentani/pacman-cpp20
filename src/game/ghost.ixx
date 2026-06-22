@@ -36,7 +36,7 @@ private:
     int col_ = 0;
     int offset_ = 0;
 
-    Dir current_dir_ {0, 0};
+    Dir current_dir_ { 0, 0 };
 
     float accumulator_ = 0.f;
     float speed_ = 0.0f;

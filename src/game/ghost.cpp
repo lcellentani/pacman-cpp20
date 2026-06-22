@@ -161,7 +161,7 @@ GhostDebugState Ghost::debug_state() const {
 }
 
 Task Ghost::behavior(Scheduler& scheduler) {
-    static constexpr std::array<std::pair<float, float>, 4> phase_timings = {{
+    static constexpr std::array<std::pair<float, float>, 3> phase_timings = {{
         { 7.0f, 20.0f },
         { 7.0f, 20.0f },
         { 5.0f, 20.0f }
@@ -221,12 +221,18 @@ MapCoord Ghost::pick_scatter_target_for_ghost(GhostId ghost_id) const {
         return { 2, 0 };  // top-left corner
     }
     if (ghost_id == GhostId::Inky) {
-        return { 27, 35 }; // bottom-right corner
+        return { 27, 30 }; // bottom-right corner
     }
     if (ghost_id == GhostId::Clyde) {
-        return { 0, 35 };  // bottom-left corner
+        return { 0, 30 };  // bottom-left corner
     }
     return { 0, 0 };
+}
+
+constexpr int distance_squared(MapCoord a, MapCoord b) {
+    int dx = a.col - b.col;
+    int dy = a.row - b.row;
+    return dx * dx + dy * dy;
 }
 
 MapCoord Ghost::pick_chase_target_for_ghost(GhostId ghost_id) const {
@@ -240,7 +246,15 @@ MapCoord Ghost::pick_chase_target_for_ghost(GhostId ghost_id) const {
         return { 0, 0 }; // bottom-right corner
     }
     if (ghost_id == GhostId::Clyde) {
-        return { 0, 0 };  // bottom-left corner
+        // calculate tile-to-tile Euclidean distance between Clyde and Pacman
+        constexpr int targetSafetyDistanceSquared = 8 * 8;
+        int dist = distance_squared({ col_, row_ }, game_state_->pacman_tile);
+        // if (dist > 8) return pacman_tile
+        if (dist > targetSafetyDistanceSquared) {
+            return game_state_->pacman_tile;
+        }
+        // if (dist <= 8) return scatter_target
+        return pick_scatter_target_for_ghost(ghost_id);
     }
     return { 0, 0 }; 
 }

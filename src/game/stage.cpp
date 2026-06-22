@@ -1,7 +1,6 @@
 module;
 #include <array>
 #include "imgui.h"
-#include <string>
 
 module game.stage;
 
@@ -18,7 +17,7 @@ void Stage::reset() {
 	blinky_.reset(scheduler_, &map_, &game_state_);
 	//pinky_.reset(scheduler_, &map_, &game_state_);
 	//inky_.reset(scheduler_, &map_, &game_state_);
-	//clyde_.reset(scheduler_, &map_, &game_state_);
+	clyde_.reset(scheduler_, &map_, &game_state_);
 
     running_ = true;
 }
@@ -61,7 +60,7 @@ void Stage::update(const InputState& input, float dt) {
 
 	game_state_.pacman_tile = pacman_.current_coord();
 	game_state_.pacman_dir = pacman_.current_dir();
-	//game_state_.blinky_tile = blinky_.current_coord();
+	game_state_.blinky_tile = blinky_.current_coord();
 }
 
 void Stage::render(Renderer& renderer) {
