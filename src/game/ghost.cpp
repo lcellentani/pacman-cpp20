@@ -240,7 +240,14 @@ MapCoord Ghost::pick_chase_target_for_ghost(GhostId ghost_id) const {
         return game_state_->pacman_tile; // Blinky targets Pac-Man's current tile directly
     }
     if (ghost_id == GhostId::Pinky) {
-        return { 0, 0 };  // top-left corner
+        int pacman_col = game_state_->pacman_tile.col;
+        int pacman_row = game_state_->pacman_tile.row;
+        int pacman_dir_x = game_state_->pacman_dir.x;
+        int pacman_dir_y = game_state_->pacman_dir.y;
+
+        int target_col = pacman_col + 4 * pacman_dir_x;
+        int target_row = pacman_row + 4 * pacman_dir_y;
+        return { target_col, target_row };
     }
     if (ghost_id == GhostId::Inky) {
         return { 0, 0 }; // bottom-right corner
