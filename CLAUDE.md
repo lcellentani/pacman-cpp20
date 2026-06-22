@@ -191,7 +191,7 @@ they describe.
 
 ## Hooks
 
-Configured in `.claude/settings.json`; scripts live in `.claude/hooks/`.
+Scripts live in `.claude/hooks/`. The following hooks have been designed but are currently inactive.
 
 | Event | Trigger | Script | Effect |
 |---|---|---|---|
