@@ -114,6 +114,38 @@ struct walk_path {
     }
 };
 
+constexpr MapCoord scatter_target_for(GhostId ghost_id) {
+    switch (ghost_id) {
+    case GhostId::Blinky: return { 25, 0 };  // top-right corner
+    case GhostId::Pinky:  return { 2, 0 };   // top-left corner
+    case GhostId::Inky:   return { 27, 30 }; // bottom-right corner
+    case GhostId::Clyde:  return { 0, 30 };  // bottom-left corner
+    }
+    return { 0, 0 };
+}
+
+constexpr int distance_squared(MapCoord a, MapCoord b) {
+    int dx = a.col - b.col;
+    int dy = a.row - b.row;
+    return dx * dx + dy * dy;
+}
+
+// Arcade "n tiles ahead of Pac-Man" lookup. Reproduces the original ROM
+// overflow bug: when Pac-Man faces up, the column is also shifted by -n.
+constexpr MapCoord arcade_ahead(MapCoord tile, Dir dir, int n) {
+    int col = tile.col + dir.x * n;
+    int row = tile.row + dir.y * n;
+    if (dir.x == 0 && dir.y == -1) col -= n;   // up: overflow bug
+    return { col, row };
+}
+
+constexpr MapCoord inky_target(MapCoord pac, Dir pac_dir, MapCoord blinky) {
+    const MapCoord pivot = arcade_ahead(pac, pac_dir, 2);
+    const int vx = pivot.col - blinky.col;
+    const int vy = pivot.row - blinky.row;
+    return { blinky.col + 2 * vx, blinky.row + 2 * vy };
+}
+
 Ghost::Ghost(GhostId id) : id_(id) {}
 
 void Ghost::reset(Scheduler& scheduler, const Map* map, const GameState* game_state) {
@@ -157,7 +189,7 @@ Color Ghost::get_color() const {
 }
 
 GhostDebugState Ghost::debug_state() const {
-    return { id_, { col_, row_ }, current_dir_.x, current_dir_.y, speed_, get_bounds(), get_color(), GhostState::Chase, target_, path_ };
+    return { id_, { col_, row_ }, current_dir_.x, current_dir_.y, speed_, get_bounds(), get_color(), state_, target_, path_ };
 }
 
 Task Ghost::behavior(Scheduler& scheduler) {
@@ -174,12 +206,14 @@ Task Ghost::behavior(Scheduler& scheduler) {
     while (true) {
         for(auto[scatter_time, chase_time] : phase_timings) {
             // scatter phase
-            target_ = pick_scatter_target_for_ghost(id_);
+            enter_phase(GhostState::Scatter);
+            target_ = scatter_target_for(id_);
             co_await wait_for(scatter_time, scheduler, [this](float dt) {
                 move_toward_greedy(target_, dt);
             });
 
             // chase phase
+            enter_phase(GhostState::Chase);
             co_await wait_for(chase_time, scheduler, [this](float dt) {
                 target_ = pick_chase_target_for_ghost(id_);
                 move_toward_greedy(target_, dt);
@@ -187,17 +221,26 @@ Task Ghost::behavior(Scheduler& scheduler) {
         }
 
         // scatter phase
-        target_ = pick_scatter_target_for_ghost(id_);
-            co_await wait_for(5.0f, scheduler, [this](float dt) {
+        enter_phase(GhostState::Scatter);
+        target_ = scatter_target_for(id_);
+        co_await wait_for(5.0f, scheduler, [this](float dt) {
             move_toward_greedy(target_, dt);
-         });
+        });
 
         // chase phase - indefinite
+        enter_phase(GhostState::Chase);
         co_await wait_for(std::nullopt, scheduler, [this](float dt) {
             target_ = pick_chase_target_for_ghost(id_);
             move_toward_greedy(target_, dt);
         });
     }
+}
+
+void Ghost::enter_phase(GhostState s) {
+    if (phase_started_ && s != state_)
+        reverse_pending_ = true;   // arcade: reverse on every mode change after the first
+    state_ = s;
+    phase_started_ = true;
 }
 
 int Ghost::pixel_x() const {
@@ -213,55 +256,26 @@ bool Ghost::can_move(int col, int row, Dir dir) const {
     return !map_->is_wall_at(col + dir.x, row + dir.y);
 }
 
-MapCoord Ghost::pick_scatter_target_for_ghost(GhostId ghost_id) const {
-    if ( ghost_id == GhostId::Blinky) {
-        return { 25, 0 }; // top-right corner
-    }
-    if (ghost_id == GhostId::Pinky) {
-        return { 2, 0 };  // top-left corner
-    }
-    if (ghost_id == GhostId::Inky) {
-        return { 27, 30 }; // bottom-right corner
-    }
-    if (ghost_id == GhostId::Clyde) {
-        return { 0, 30 };  // bottom-left corner
-    }
-    return { 0, 0 };
-}
-
-constexpr int distance_squared(MapCoord a, MapCoord b) {
-    int dx = a.col - b.col;
-    int dy = a.row - b.row;
-    return dx * dx + dy * dy;
-}
-
 MapCoord Ghost::pick_chase_target_for_ghost(GhostId ghost_id) const {
    if ( ghost_id == GhostId::Blinky) {
         return game_state_->pacman_tile; // Blinky targets Pac-Man's current tile directly
     }
     if (ghost_id == GhostId::Pinky) {
-        int pacman_col = game_state_->pacman_tile.col;
-        int pacman_row = game_state_->pacman_tile.row;
-        int pacman_dir_x = game_state_->pacman_dir.x;
-        int pacman_dir_y = game_state_->pacman_dir.y;
-
-        int target_col = pacman_col + 4 * pacman_dir_x;
-        int target_row = pacman_row + 4 * pacman_dir_y;
-        return { target_col, target_row };
+        // Four tiles ahead of Pac-Man, reproducing the arcade up-overflow bug.
+        return arcade_ahead(game_state_->pacman_tile, game_state_->pacman_dir, 4);
     }
     if (ghost_id == GhostId::Inky) {
-        return { 0, 0 }; // bottom-right corner
+        return inky_target(game_state_->pacman_tile, game_state_->pacman_dir, game_state_->blinky_tile);
     }
     if (ghost_id == GhostId::Clyde) {
-        // calculate tile-to-tile Euclidean distance between Clyde and Pacman
-        constexpr int targetSafetyDistanceSquared = 8 * 8;
-        int dist = distance_squared({ col_, row_ }, game_state_->pacman_tile);
-        // if (dist > 8) return pacman_tile
-        if (dist > targetSafetyDistanceSquared) {
+        // Chase Pac-Man directly only when farther than 8 tiles (squared distance);
+        // otherwise retreat to the scatter corner.
+        constexpr int target_safety_distance_squared = 8 * 8;
+        const int dist = distance_squared({ col_, row_ }, game_state_->pacman_tile);
+        if (dist > target_safety_distance_squared) {
             return game_state_->pacman_tile;
         }
-        // if (dist <= 8) return scatter_target
-        return pick_scatter_target_for_ghost(ghost_id);
+        return scatter_target_for(ghost_id);
     }
     return { 0, 0 }; 
 }
@@ -329,34 +343,40 @@ void Ghost::move_toward_greedy(MapCoord target, float dt) {
         if (offset_ == 0) {
             const Dir reverse_dir{ -current_dir_.x, -current_dir_.y };
 
-            std::array<Dir, 4> best_dirs{};
-            int best_count = 0;
-            int min_dist = std::numeric_limits<int>::max();
-
-            auto consider = [&](const Dir& dir) {
-                int dx = (col_ + dir.x) - target.col;
-                int dy = (row_ + dir.y) - target.row;
-                int dist = dx * dx + dy * dy;
-                if (dist < min_dist) {
-                    min_dist = dist;
-                    best_count = 0;
-                }
-                if (dist == min_dist)
-                    best_dirs[best_count++] = dir;
-            };
-
-            for (const Dir& dir : cardinal_dirs()) {
-                if (dir.x == reverse_dir.x && dir.y == reverse_dir.y) continue;
-                if (!can_move(col_, row_, dir)) continue;
-                consider(dir);
+            if (reverse_pending_) {
+                // Mode switch (scatter<->chase) forces a direction reversal.
+                reverse_pending_ = false;
+                if ((reverse_dir.x != 0 || reverse_dir.y != 0) && can_move(col_, row_, reverse_dir))
+                    current_dir_ = reverse_dir;
             }
+            else {
+                // Deterministic greedy choice. cardinal_dirs() is ordered by arcade
+                // tie-break priority (Up > Left > Down > Right); strict '<' keeps the
+                // first (highest-priority) direction at the minimum distance.
+                Dir best_dir{ 0, 0 };
+                int min_dist = std::numeric_limits<int>::max();
+                bool found = false;
 
-            // Dead-end fallback: allow reversal only when no other walkable direction exists.
-            if (best_count == 0 && can_move(col_, row_, reverse_dir))
-                consider(reverse_dir);
+                for (const Dir& dir : cardinal_dirs()) {
+                    if (dir.x == reverse_dir.x && dir.y == reverse_dir.y) continue;
+                    if (!can_move(col_, row_, dir)) continue;
+                    const int dist = distance_squared({ col_ + dir.x, row_ + dir.y }, target);
+                    if (dist < min_dist) {
+                        min_dist = dist;
+                        best_dir = dir;
+                        found = true;
+                    }
+                }
 
-            if (best_count > 0)
-                current_dir_ = best_dirs[random_int(0, best_count - 1)];
+                // Dead-end fallback: allow reversal only when no other walkable direction exists.
+                if (!found && can_move(col_, row_, reverse_dir)) {
+                    best_dir = reverse_dir;
+                    found = true;
+                }
+
+                if (found)
+                    current_dir_ = best_dir;
+            }
         }
 
         if (current_dir_.x == 0 && current_dir_.y == 0)

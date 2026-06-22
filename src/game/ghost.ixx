@@ -38,6 +38,10 @@ private:
 
     Dir current_dir_ { 0, 0 };
 
+    GhostState state_ = GhostState::Scatter; // actual current phase
+    bool phase_started_ = false;             // suppress reversal on the very first phase
+    bool reverse_pending_ = false;           // set on mode switch, consumed at next tile center
+
     float accumulator_ = 0.f;
     float speed_ = 0.0f;
 
@@ -48,13 +52,13 @@ private:
     Task behavior_;
 
     Task behavior(Scheduler& scheduler);
+    void enter_phase(GhostState s);
 
     int pixel_x() const;
     int pixel_y() const;
 
     bool can_move(int col, int row, Dir dir) const;
 
-    MapCoord pick_scatter_target_for_ghost(GhostId ghost_id) const;
     MapCoord pick_chase_target_for_ghost(GhostId ghost_id) const;
     MapCoord pick_random_target();
     std::span<const MapCoord> path_for_ghost(GhostId ghost_id);

@@ -17,7 +17,7 @@ A fully playable Pac-Man clone built with C++20 as a deliberate learning project
 
 _Update this section at the end of every session — 3–5 lines, present tense._
 
-Phase 3 is well underway. All four ghosts (Blinky, Pinky, Inky, Clyde) are implemented with coroutine-based scatter/chase cycles using `wait_for` and `walk_path` awaitables. `game.scheduler`, `engine.log`, `engine.random`, and `game.console` have been added to support ghost AI and in-game logging. `GhostDebugState` and `GameState` are defined in `game.types` and wired up. Pinky, Inky, and Clyde chase targets are still stubs — that is the active next target.
+Phase 3 is well underway. All four ghosts (Blinky, Pinky, Inky, Clyde) are implemented with coroutine-based scatter/chase cycles using `wait_for` and `walk_path` awaitables. All four chase targets now follow authentic arcade logic, including the up-facing overflow bug shared by Pinky and Inky (`arcade_ahead`), deterministic tie-breaking via the priority-ordered `cardinal_dirs()` (Up > Left > Down > Right), and a forced direction reversal on each scatter↔chase switch (`enter_phase`/`reverse_pending_`). `game.scheduler`, `engine.log`, `engine.random`, and `game.console` support ghost AI and in-game logging. `GhostDebugState` and `GameState` are defined in `game.types` and wired up; `Ghost` now tracks its real `state_`.
 
 The executable uses `/SUBSYSTEM:WINDOWS` (no console window) with `/ENTRY:mainCRTStartup`, so `int main()` remains the entry point with no `WinMain` shim. `SDL2::SDL2main` is not linked.
 
@@ -25,9 +25,7 @@ The executable uses `/SUBSYSTEM:WINDOWS` (no console window) with `/ENTRY:mainCR
 
 _Update this list at the end of every session._
 
-- Pinky, Inky, Clyde chase targeting — all three stub-return `{0,0}`; only Blinky targets Pac-Man's tile
-- `phase_timings` array in `Ghost::behavior` is declared as 4 pairs but only 3 initializers are provided (silent truncation)
-- `Ghost::debug_state()` hardcodes `GhostState::Chase` — ghost does not track its actual current state
+- Forced reversal on scatter↔chase switch is consumed at the next tile center (`reverse_pending_`), so a ghost mid-tile reverses up to one tile late — a deliberate simplification vs. the arcade's immediate flip
 - `InputPoller` refactor deferred — edge detection still lives in `Stage` via `prev_debug_key_` / `prev_console_key_`
 - `WallQuery`/`WorldQuery` concepts on hold until a second world query source exists
 - Score display deferred to Phase 4 (`std::format`)
