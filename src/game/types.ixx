@@ -47,8 +47,10 @@ export struct PacmanDebugState {
 
 export struct Dir { int x, y; }; // values always in {-1, 0, 1}
 
+// Order encodes the arcade ghost tie-break priority: Up > Left > Down > Right.
+// Consumers that break ties by "first acceptable direction" rely on this order.
 export [[nodiscard]] inline std::span<const Dir> cardinal_dirs() {
-    static constexpr std::array<Dir, 4> dirs = { { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } };
+    static constexpr std::array<Dir, 4> dirs = { { { 0, -1 }, { -1, 0 }, { 0, 1 }, { 1, 0 } } };
     return dirs;
 }
 
