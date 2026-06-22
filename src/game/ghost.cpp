@@ -174,27 +174,25 @@ Task Ghost::behavior(Scheduler& scheduler) {
     while (true) {
         for(auto[scatter_time, chase_time] : phase_timings) {
             // scatter phase
-            log_trace("entering scatter phase for " + std::to_string(scatter_time) + " seconds");
             target_ = pick_scatter_target_for_ghost(id_);
             co_await wait_for(scatter_time, scheduler, [this](float dt) {
                 move_toward_greedy(target_, dt);
             });
 
             // chase phase
-            log_trace("entering chase phase for " + std::to_string(chase_time) + " seconds");
             co_await wait_for(chase_time, scheduler, [this](float dt) {
                 target_ = pick_chase_target_for_ghost(id_);
                 move_toward_greedy(target_, dt);
             });
         }
 
-        log_trace("entering scatter phase for 5.0 seconds");
-            target_ = pick_scatter_target_for_ghost(id_);
+        // scatter phase
+        target_ = pick_scatter_target_for_ghost(id_);
             co_await wait_for(5.0f, scheduler, [this](float dt) {
-                move_toward_greedy(target_, dt);
-            });
+            move_toward_greedy(target_, dt);
+         });
 
-        log_trace("entering infinite chase phase");
+        // chase phase - indefinite
         co_await wait_for(std::nullopt, scheduler, [this](float dt) {
             target_ = pick_chase_target_for_ghost(id_);
             move_toward_greedy(target_, dt);
