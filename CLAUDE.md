@@ -118,6 +118,9 @@ Dependencies (SDL2 2.30.2, ImGui 1.91.9b, nlohmann/json 3.11.3) are fetched auto
 
 If the Clang/Ninja build fails with "user-mapped section open" errors on `.pcm` files, the IDE has them locked — use `--clean-first` to recover.
 
+> **Known limitation — VS Code debugger (`cppvsdbg`) can't expand struct/class members on the clang-ninja-debug preset.**
+> Breakpoints and scalar locals work; compound variables (`GhostDebugState`, `PacmanDebugState`, `MapCoord`, `AABB`, etc.) show as empty/unexpandable. Verified with `llvm-pdbutil dump -types` on the linked PDB: Clang emits these object files with `-debug-info-kind=constructor`, a "homing" heuristic that only emits a type's full layout in the one TU that defines its constructor. These are plain aggregates with no constructor, so no TU is ever homed and every object file carries only a forward declaration (`sizeof 0`). `-fstandalone-debug` (Clang's documented escape hatch from homing) does **not** fix this for types defined in a C++20 module interface unit — confirmed by rebuilding and re-inspecting the PDB; the forward ref persists even in TUs that construct the type (e.g. `ghost.cpp`). Giving the struct an explicit constructor is not a workaround either — it breaks aggregate-initialization at every call site (e.g. `ghost.cpp:252`'s 10-element brace-init of `GhostDebugState`). This appears to be a real, currently-incomplete area of Clang's C++20 Standard Modules debug-info support on the CodeView/PDB backend (more mature on DWARF/Linux). No local fix found; not re-investigated unless Clang/LLVM changes upstream.
+
 ## Module Graph
 
 The following graph is intentionally high-level and the authoritative reference is the `.ixx` files themselves.
