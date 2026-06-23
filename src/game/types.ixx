@@ -2,6 +2,7 @@ module;
 #include <array>
 #include <coroutine>
 #include <exception>
+#include <optional>
 #include <span>
 
 export module game.types;
@@ -54,9 +55,14 @@ export [[nodiscard]] inline std::span<const Dir> cardinal_dirs() {
     return dirs;
 }
 
-export enum class GhostState { Scatter, Chase, Frightened, Dead };
+export enum class GhostState { House, Scatter, Chase, Frightened, Dead };
 
 export enum class GhostId { Blinky, Pinky, Inky, Clyde };
+
+export [[nodiscard]] inline std::span<const GhostId> ghost_release_order() {
+    static constexpr std::array<GhostId, 3> order = { { GhostId::Pinky, GhostId::Inky, GhostId::Clyde } };
+    return order;
+}
 
 export struct GhostDebugState {
     GhostId    id;
@@ -75,15 +81,34 @@ export struct GameState {
     Dir pacman_dir;
 
     MapCoord blinky_tile;
+
+    int dots_eaten;
+    float dots_timer;
+
+    std::optional<GhostId> next_force_release;
+    size_t next_ghost_release_index;
 };
 
 export struct Task {
     struct promise_type {
+        std::coroutine_handle<> continuation_;
+
         Task get_return_object() {
             return Task{ std::coroutine_handle<promise_type>::from_promise(*this) };
         }
         std::suspend_always initial_suspend() { return {}; }
-        std::suspend_always final_suspend() noexcept { return {}; }
+
+        struct FinalAwaiter {
+            bool await_ready() noexcept { return false; }
+            void await_suspend(std::coroutine_handle<promise_type> handle) noexcept {
+                if (handle.promise().continuation_) {
+                    handle.promise().continuation_.resume();
+                }
+            }
+            void await_resume() noexcept {}
+        };
+        FinalAwaiter final_suspend() noexcept { return {}; }
+
         void return_void() {}
         void unhandled_exception() { std::terminate(); }
     };
@@ -98,7 +123,7 @@ export struct Task {
     Task() : handle_(nullptr) {}
     Task(const Task&) = delete;
     Task& operator=(const Task&) = delete;
-    
+
     Task(Task&& other) : handle_(other.handle_) { other.handle_ = nullptr; }
     Task& operator=(Task&& other) {
         if (this != &other) {
@@ -114,4 +139,11 @@ export struct Task {
     void resume() {
         handle_.resume();
     }
+
+    bool await_ready() { return false; }
+    void await_suspend(std::coroutine_handle<> continuation) {
+        handle_.promise().continuation_ = continuation;
+        handle_.resume();
+    }
+    void await_resume() {}
 };

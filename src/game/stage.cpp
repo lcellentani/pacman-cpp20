@@ -20,6 +20,13 @@ void Stage::reset() {
 	clyde_.reset(scheduler_, &map_, &game_state_);
 
     running_ = true;
+
+	game_state_.dots_eaten = 0;
+	game_state_.dots_timer = 0.0f;
+	game_state_.next_ghost_release_index = 0;
+	game_state_.next_force_release = ghost_release_order()[game_state_.next_ghost_release_index];
+
+	score_ = 0;
 }
 
 void Stage::increment_score(int delta) {
@@ -51,16 +58,17 @@ void Stage::update(const InputState& input, float dt) {
 		int pac_col = pacman_.current_col();
 		int pac_row = pacman_.current_row();
 		if (map_.tile_at_index(pac_row, pac_col) == Tile::Pellet) {
-			map_.clear_tile(pac_col, pac_row);
+			eat_dot(pac_col, pac_row);
 		}
 		else if (map_.tile_at_index(pac_row, pac_col) == Tile::SuperPellet) {
-			map_.clear_tile(pac_col, pac_row);
+			eat_dot(pac_col, pac_row);
 		}
 	}
 
 	game_state_.pacman_tile = pacman_.current_coord();
 	game_state_.pacman_dir = pacman_.current_dir();
 	game_state_.blinky_tile = blinky_.current_coord();
+	game_state_.dots_timer += dt;
 }
 
 void Stage::render(Renderer& renderer) {
@@ -92,4 +100,11 @@ void Stage::render(Renderer& renderer) {
 
 	renderer.imgui_render();
 	renderer.present();
+}
+
+void Stage::eat_dot(int col, int row) {
+	game_state_.dots_eaten++;
+	game_state_.dots_timer = 0.0f;
+
+	map_.clear_tile(col, row);
 }

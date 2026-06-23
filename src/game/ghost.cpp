@@ -51,6 +51,56 @@ struct wait_for {
     }
 };
 
+struct wait_for_release {
+    Ghost& ghost_;
+    Scheduler& scheduler_;
+    GameState& game_state_;
+    int dot_threshold_;
+    float force_release_seconds_;
+
+    Scheduler::Handle registration_ = 0;
+    std::coroutine_handle<> handle_;
+
+    wait_for_release(Ghost& ghost, Scheduler& scheduler, GameState& game_state, int dot_threshold, float force_release_seconds)
+        : ghost_(ghost)
+        , scheduler_(scheduler)
+        , game_state_(game_state)
+        , dot_threshold_(dot_threshold)
+        , force_release_seconds_(force_release_seconds) {}
+
+    bool await_ready() { return false; }
+
+    void await_suspend(std::coroutine_handle<> handle) {
+        handle_ = handle;
+        registration_ = scheduler_.register_updatable(*this);
+    }
+
+    void await_resume() {
+        scheduler_.unregister_updatable(registration_);
+    }
+
+    void update(float dt) {
+        (void)dt; // unused
+
+        bool advance_release_queue = false;
+        if (game_state_.dots_eaten >= dot_threshold_) {
+            advance_release_queue = true;
+        }
+        else if (game_state_.next_force_release == ghost_.id_ && game_state_.dots_timer > force_release_seconds_) {
+            advance_release_queue = true;
+            game_state_.dots_timer = 0.0f;
+        }
+        if (advance_release_queue) {
+            game_state_.next_ghost_release_index++;
+            game_state_.next_force_release = std::nullopt;
+            if (game_state_.next_ghost_release_index < ghost_release_order().size()) {
+                game_state_.next_force_release = ghost_release_order()[game_state_.next_ghost_release_index];
+            }
+            handle_.resume();
+        }
+    }
+};
+
 struct move_to {
     Ghost& ghost_;
     Scheduler& scheduler_;
@@ -146,9 +196,19 @@ constexpr MapCoord inky_target(MapCoord pac, Dir pac_dir, MapCoord blinky) {
     return { blinky.col + 2 * vx, blinky.row + 2 * vy };
 }
 
+constexpr int dot_threshold_for(GhostId ghost_id) {
+    switch (ghost_id) {
+    case GhostId::Blinky: return 0;   // Blinky starts outside, so no threshold
+    case GhostId::Pinky:  return 0;
+    case GhostId::Inky:   return 30;
+    case GhostId::Clyde:  return 60;
+    }
+    return 0;
+}
+
 Ghost::Ghost(GhostId id) : id_(id) {}
 
-void Ghost::reset(Scheduler& scheduler, const Map* map, const GameState* game_state) {
+void Ghost::reset(Scheduler& scheduler, const Map* map, GameState* game_state) {
     map_ = map;
     game_state_ = game_state;
 
@@ -200,7 +260,8 @@ Task Ghost::behavior(Scheduler& scheduler) {
     }};
 
     if (id_ != GhostId::Blinky) {
-        co_await walk_path(*this, scheduler, path_for_ghost(id_));
+        //co_await walk_path(*this, scheduler, path_for_ghost(id_));
+        co_await release_from_house(scheduler, dot_threshold_for(id_), 5.0f);
     }
 
     while (true) {
@@ -234,6 +295,12 @@ Task Ghost::behavior(Scheduler& scheduler) {
             move_toward_greedy(target_, dt);
         });
     }
+}
+
+Task Ghost::release_from_house(Scheduler& scheduler, int dot_threshold, float force_release_seconds) {
+    state_ = GhostState::House;
+    co_await wait_for_release(*this, scheduler, *game_state_, dot_threshold, force_release_seconds);
+    co_await walk_path(*this, scheduler, path_for_ghost(id_));
 }
 
 void Ghost::enter_phase(GhostState s) {

@@ -14,7 +14,7 @@ export class Ghost {
 public:
     explicit Ghost(GhostId id);
 
-    void reset(Scheduler& scheduler, const Map* map, const GameState* game_state);
+    void reset(Scheduler& scheduler, const Map* map, GameState* game_state);
     
     MapCoord current_coord() const { return { col_, row_ }; }
 
@@ -28,6 +28,7 @@ public:
 private:
     friend struct move_to;
     friend struct walk_path;
+    friend struct wait_for_release;
 
     GhostId id_;
     MapCoord target_;
@@ -46,12 +47,13 @@ private:
     float speed_ = 0.0f;
 
     const Map* map_ = nullptr; // pointer, rebindable, nullable
-    const GameState* game_state_ = nullptr;
+    GameState* game_state_ = nullptr;
 
     std::vector<MapCoord> path_;
     Task behavior_;
 
     Task behavior(Scheduler& scheduler);
+    Task release_from_house(Scheduler& scheduler, int dot_threshold, float force_release_seconds);
     void enter_phase(GhostState s);
 
     int pixel_x() const;

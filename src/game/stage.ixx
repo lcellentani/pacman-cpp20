@@ -46,4 +46,6 @@ private:
     ConsoleView console_;
     bool prev_debug_key_ = false;
     bool prev_console_key_ = false;
+
+    void eat_dot(int col, int row);
 };
