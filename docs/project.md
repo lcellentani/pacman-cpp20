@@ -121,7 +121,7 @@ Time budget: ~2–5 hours per week. Total duration: ~16 weeks.
 
 ---
 
-### Phase 2 — Concepts-driven entity system (weeks 4–7) 🔄
+### Phase 2 — Concepts-driven entity system (weeks 4–7) ✅
 **Goal:** define the entity model using C++20 Concepts before any AI logic is written.
 
 - Define `Drawable`, `Updatable`, `Collidable` concepts
@@ -139,7 +139,7 @@ Time budget: ~2–5 hours per week. Total duration: ~16 weeks.
 
 ---
 
-### Phase 3 — Coroutine ghost AI + game loop (weeks 8–13)
+### Phase 3 — Coroutine ghost AI + game loop (weeks 8–13) 🔄
 **Goal:** replace placeholder ghost AI with coroutine-based state machines.
 
 - Implement a minimal coroutine task scheduler for the game loop
