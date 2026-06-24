@@ -33,7 +33,7 @@ void DebugView::draw_ghost_section(const GhostDebugState& ghost) {
     if (!ImGui::CollapsingHeader(name, ImGuiTreeNodeFlags_DefaultOpen))
         return;
 
-    const char* state_names[] = { "Scatter", "Chase", "Frightened", "Dead" };
+    const char* state_names[] = { "House", "Scatter", "Chase", "Frightened", "Dead" };
     const char* state_str = state_names[static_cast<int>(ghost.state)];
 
     ImGui::Text("pos    %d, %d", ghost.coord.col, ghost.coord.row);
@@ -53,6 +53,13 @@ void DebugView::draw_tweaks_section(GameConfig& config) {
         return;
 
     ImGui::SliderFloat("Pac-Man speed", &config.pacman_speed, 50.0f, 400.0f);
+
+    ImGui::Spacing();
+    ImGui::TextDisabled("Ghost house (applies on next restart)");
+    ImGui::SliderInt("Pinky dot threshold", &config.ghost_house_dots_pinky, 0, 60);
+    ImGui::SliderInt("Inky dot threshold", &config.ghost_house_dots_inky, 0, 100);
+    ImGui::SliderInt("Clyde dot threshold", &config.ghost_house_dots_clyde, 0, 150);
+    ImGui::SliderFloat("Force-release seconds", &config.ghost_house_force_release_seconds, 1.0f, 15.0f);
 
     if (ImGui::Button("Save as defaults"))
         save_config(config, "config.json");
