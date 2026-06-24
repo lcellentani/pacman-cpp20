@@ -86,9 +86,9 @@ struct wait_for_release {
         if (game_state_.dots_eaten >= dot_threshold_) {
             advance_release_queue = true;
         }
-        else if (game_state_.next_force_release == ghost_.id_ && game_state_.dots_timer > force_release_seconds_) {
+        else if (game_state_.next_force_release == ghost_.id_ && game_state_.dot_timer > force_release_seconds_) {
             advance_release_queue = true;
-            game_state_.dots_timer = 0.0f;
+            game_state_.dot_timer = 0.0f;
         }
         if (advance_release_queue) {
             game_state_.next_ghost_release_index++;
@@ -196,21 +196,14 @@ constexpr MapCoord inky_target(MapCoord pac, Dir pac_dir, MapCoord blinky) {
     return { blinky.col + 2 * vx, blinky.row + 2 * vy };
 }
 
-constexpr int dot_threshold_for(GhostId ghost_id) {
-    switch (ghost_id) {
-    case GhostId::Blinky: return 0;   // Blinky starts outside, so no threshold
-    case GhostId::Pinky:  return 0;
-    case GhostId::Inky:   return 30;
-    case GhostId::Clyde:  return 60;
-    }
-    return 0;
-}
-
 Ghost::Ghost(GhostId id) : id_(id) {}
 
-void Ghost::reset(Scheduler& scheduler, const Map* map, GameState* game_state) {
+void Ghost::reset(Scheduler& scheduler, const Map* map, GameState* game_state, int dot_threshold, float force_release_seconds) {
     map_ = map;
     game_state_ = game_state;
+
+    dot_threshold_ = dot_threshold;
+    force_release_seconds_ = force_release_seconds;
 
     switch (id_) {
     case GhostId::Blinky: col_ = 13; row_ = 11; break;
@@ -260,8 +253,7 @@ Task Ghost::behavior(Scheduler& scheduler) {
     }};
 
     if (id_ != GhostId::Blinky) {
-        //co_await walk_path(*this, scheduler, path_for_ghost(id_));
-        co_await release_from_house(scheduler, dot_threshold_for(id_), 5.0f);
+        co_await release_from_house(scheduler, dot_threshold_, force_release_seconds_);
     }
 
     while (true) {

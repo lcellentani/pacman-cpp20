@@ -14,15 +14,15 @@ Stage::Stage(GameConfig config)
 void Stage::reset() {
 	map_.reset();
 	pacman_.reset(&map_);
-	blinky_.reset(scheduler_, &map_, &game_state_);
-	pinky_.reset(scheduler_, &map_, &game_state_);
-	inky_.reset(scheduler_, &map_, &game_state_);
-	clyde_.reset(scheduler_, &map_, &game_state_);
+	blinky_.reset(scheduler_, &map_, &game_state_, 0, config_.ghost_house_force_release_seconds);
+	pinky_.reset(scheduler_, &map_, &game_state_, config_.ghost_house_dots_pinky, config_.ghost_house_force_release_seconds);
+	inky_.reset(scheduler_, &map_, &game_state_, config_.ghost_house_dots_inky, config_.ghost_house_force_release_seconds);
+	clyde_.reset(scheduler_, &map_, &game_state_, config_.ghost_house_dots_clyde, config_.ghost_house_force_release_seconds);
 
     running_ = true;
 
 	game_state_.dots_eaten = 0;
-	game_state_.dots_timer = 0.0f;
+	game_state_.dot_timer = 0.0f;
 	game_state_.next_ghost_release_index = 0;
 	game_state_.next_force_release = ghost_release_order()[game_state_.next_ghost_release_index];
 
@@ -68,7 +68,7 @@ void Stage::update(const InputState& input, float dt) {
 	game_state_.pacman_tile = pacman_.current_coord();
 	game_state_.pacman_dir = pacman_.current_dir();
 	game_state_.blinky_tile = blinky_.current_coord();
-	game_state_.dots_timer += dt;
+	game_state_.dot_timer += dt;
 }
 
 void Stage::render(Renderer& renderer) {
@@ -104,7 +104,7 @@ void Stage::render(Renderer& renderer) {
 
 void Stage::eat_dot(int col, int row) {
 	game_state_.dots_eaten++;
-	game_state_.dots_timer = 0.0f;
+	game_state_.dot_timer = 0.0f;
 
 	map_.clear_tile(col, row);
 }

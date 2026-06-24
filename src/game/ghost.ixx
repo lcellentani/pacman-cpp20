@@ -14,7 +14,7 @@ export class Ghost {
 public:
     explicit Ghost(GhostId id);
 
-    void reset(Scheduler& scheduler, const Map* map, GameState* game_state);
+    void reset(Scheduler& scheduler, const Map* map, GameState* game_state, int dot_threshold, float force_release_seconds);
     
     MapCoord current_coord() const { return { col_, row_ }; }
 
@@ -45,6 +45,8 @@ private:
 
     float accumulator_ = 0.f;
     float speed_ = 0.0f;
+    int dot_threshold_ = 0;
+    float force_release_seconds_ = 0.0f;
 
     const Map* map_ = nullptr; // pointer, rebindable, nullable
     GameState* game_state_ = nullptr;

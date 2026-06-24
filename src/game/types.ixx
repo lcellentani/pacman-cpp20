@@ -83,7 +83,7 @@ export struct GameState {
     MapCoord blinky_tile;
 
     int dots_eaten;
-    float dots_timer;
+    float dot_timer;
 
     std::optional<GhostId> next_force_release;
     size_t next_ghost_release_index;
