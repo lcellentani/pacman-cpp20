@@ -20,7 +20,10 @@ Phase 3 is well underway. All four ghosts (Blinky, Pinky, Inky, Clyde) run corou
 scatter/chase cycles with authentic arcade chase-target logic and house release governed by
 dot-eaten thresholds and a force-release timer. `Frightened`/`Dead` exist in the `GhostState`
 enum but have no coroutine path yet. For implementation detail (awaitables, tie-breaking,
-house release specifics) see `docs/phase3_notes.md`.
+house release specifics) see `docs/phase3_notes.md`. The ImGui debug workbench was
+restructured this session: ghosts now render as a single comparison table instead of four
+collapsing headers, a read-only `GameState` panel was added, and the minimap moved out of
+`Debug` into its own `Minimap` window alongside `Game` and `Console`.
 
 ## Open Items
 
@@ -31,6 +34,8 @@ _Update this list at the end of every session._
 - `WallQuery`/`WorldQuery` concepts on hold until a second world query source exists
 - Score display deferred to Phase 4 (`std::format`)
 - `GhostState::Frightened` and `GhostState::Dead` exist in the enum and in `debug.cpp`'s display strings, but `Ghost::behavior()` has no coroutine path that enters either state yet
+- `LAYOUT_MINIMAP_*` constants (`types.ixx`) are first-pass placement for the new `Minimap` window — not yet hand-tuned by Ludo
+- Ghosts table in `debug.cpp` drops the per-ghost AABB column (redundant with the minimap's bounds rect) — revisit if a numeric AABB readout turns out to be needed
 
 ## Build
 

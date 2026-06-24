@@ -15,12 +15,13 @@ public:
     [[nodiscard]] bool is_visible() const { return visible_; }
 
     void draw(const Map& map, const PacmanDebugState& pacman,
-              std::span<const GhostDebugState> ghosts, GameConfig& config);
+              std::span<const GhostDebugState> ghosts, const GameState& game_state, GameConfig& config);
 
 private:
     void draw_pacman_section(const PacmanDebugState& pacman);
-    void draw_ghost_section(const GhostDebugState& ghost);
-    void draw_map_section(const Map& map, const PacmanDebugState& pacman, std::span<const GhostDebugState> ghosts);
+    void draw_ghosts_table(std::span<const GhostDebugState> ghosts);
+    void draw_gamestate_section(const GameState& game_state);
+    void draw_minimap_window(const Map& map, const PacmanDebugState& pacman, std::span<const GhostDebugState> ghosts);
     void draw_tweaks_section(GameConfig& config);
 
     bool visible_ = false;

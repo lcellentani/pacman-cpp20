@@ -6,8 +6,16 @@ module game.debug;
 
 import engine.types;
 
+namespace {
+const char* ghost_name(GhostId id) {
+    const char* names[] = { "Blinky", "Pinky", "Inky", "Clyde" };
+    return names[static_cast<int>(id)];
+}
+}
+
 void DebugView::draw(const Map& map, const PacmanDebugState& pacman,
-                     std::span<const GhostDebugState> ghosts, GameConfig& config) {
+                     std::span<const GhostDebugState> ghosts, const GameState& game_state,
+                     GameConfig& config) {
     if (!visible_) return;
 
     ImGui::SetNextWindowPos({ (float)LAYOUT_DEBUG_X, (float)LAYOUT_DEBUG_Y }, ImGuiCond_Once);
@@ -15,37 +23,74 @@ void DebugView::draw(const Map& map, const PacmanDebugState& pacman,
 
     ImGui::Begin("Debug");
     draw_pacman_section(pacman);
-    for (const GhostDebugState& ghost : ghosts) {
-        ImGui::Separator();
-        draw_ghost_section(ghost);
-    }
+    ImGui::Separator();
+    draw_ghosts_table(ghosts);
+    ImGui::Separator();
+    draw_gamestate_section(game_state);
     ImGui::Separator();
     draw_tweaks_section(config);
-    ImGui::Separator();
-    draw_map_section(map, pacman, ghosts);
     ImGui::End();
+
+    draw_minimap_window(map, pacman, ghosts);
 }
 
-void DebugView::draw_ghost_section(const GhostDebugState& ghost) {
-    const char* names[] = { "Blinky", "Pinky", "Inky", "Clyde" };
-    const char* name = names[static_cast<int>(ghost.id)];
-
-    if (!ImGui::CollapsingHeader(name, ImGuiTreeNodeFlags_DefaultOpen))
+void DebugView::draw_ghosts_table(std::span<const GhostDebugState> ghosts) {
+    if (!ImGui::CollapsingHeader("Ghosts", ImGuiTreeNodeFlags_DefaultOpen))
         return;
 
     const char* state_names[] = { "House", "Scatter", "Chase", "Frightened", "Dead" };
-    const char* state_str = state_names[static_cast<int>(ghost.state)];
 
-    ImGui::Text("pos    %d, %d", ghost.coord.col, ghost.coord.row);
-    ImGui::Text("vel    %d, %d", ghost.dir_x, ghost.dir_y);
-    ImGui::Text("speed  %.1f", ghost.speed);
-    ImGui::Text("state  %s", state_str);
-    if (ghost.target.col >= 0)
-        ImGui::Text("target %d, %d", ghost.target.col, ghost.target.row);
-    ImGui::Spacing();
-    ImGui::Text("AABB   x=%.1f y=%.1f w=%.1f h=%.1f",
-        ghost.bounds.x, ghost.bounds.y,
-        ghost.bounds.width, ghost.bounds.height);
+    if (!ImGui::BeginTable("ghosts", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+        return;
+
+    ImGui::TableSetupColumn("Ghost");
+    ImGui::TableSetupColumn("pos");
+    ImGui::TableSetupColumn("dir");
+    ImGui::TableSetupColumn("speed");
+    ImGui::TableSetupColumn("state");
+    ImGui::TableSetupColumn("target");
+    ImGui::TableHeadersRow();
+
+    for (const GhostDebugState& ghost : ghosts) {
+        ImGui::TableNextRow();
+
+        ImGui::TableNextColumn();
+        ImGui::TextColored({ ghost.color.r / 255.f, ghost.color.g / 255.f, ghost.color.b / 255.f, 1.f },
+            "%s", ghost_name(ghost.id));
+
+        ImGui::TableNextColumn();
+        ImGui::Text("%d, %d", ghost.coord.col, ghost.coord.row);
+
+        ImGui::TableNextColumn();
+        ImGui::Text("%d, %d", ghost.dir_x, ghost.dir_y);
+
+        ImGui::TableNextColumn();
+        ImGui::Text("%.1f", ghost.speed);
+
+        ImGui::TableNextColumn();
+        ImGui::Text("%s", state_names[static_cast<int>(ghost.state)]);
+
+        ImGui::TableNextColumn();
+        if (ghost.target.col >= 0)
+            ImGui::Text("%d, %d", ghost.target.col, ghost.target.row);
+        else
+            ImGui::TextUnformatted("-");
+    }
+
+    ImGui::EndTable();
+}
+
+void DebugView::draw_gamestate_section(const GameState& game_state) {
+    if (!ImGui::CollapsingHeader("Game State", ImGuiTreeNodeFlags_DefaultOpen))
+        return;
+
+    ImGui::Text("dots_eaten               %d", game_state.dots_eaten);
+    ImGui::Text("dot_timer                %.2f", game_state.dot_timer);
+    if (game_state.next_force_release.has_value())
+        ImGui::Text("next_force_release       %s", ghost_name(game_state.next_force_release.value()));
+    else
+        ImGui::Text("next_force_release       <none>");
+    ImGui::Text("next_ghost_release_index %zu", game_state.next_ghost_release_index);
 }
 
 void DebugView::draw_tweaks_section(GameConfig& config) {
@@ -79,9 +124,10 @@ void DebugView::draw_pacman_section(const PacmanDebugState& pacman) {
         pacman.bounds.width, pacman.bounds.height);
 }
 
-void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman, std::span<const GhostDebugState> ghosts) {
-    if (!ImGui::CollapsingHeader("Map", ImGuiTreeNodeFlags_DefaultOpen))
-        return;
+void DebugView::draw_minimap_window(const Map& map, const PacmanDebugState& pacman, std::span<const GhostDebugState> ghosts) {
+    ImGui::SetNextWindowPos({ (float)LAYOUT_MINIMAP_X, (float)LAYOUT_MINIMAP_Y }, ImGuiCond_Once);
+    ImGui::SetNextWindowSize({ (float)LAYOUT_MINIMAP_W, (float)LAYOUT_MINIMAP_H }, ImGuiCond_Once);
+    ImGui::Begin("Minimap");
 
     // Mini tile map — each tile rendered as a small colored square
     constexpr float MINI_TILE = 12.f;
@@ -174,4 +220,6 @@ void DebugView::draw_map_section(const Map& map, const PacmanDebugState& pacman,
         MAP_COLS * (MINI_TILE + PADDING),
         MAP_ROWS * (MINI_TILE + PADDING)
         });
+
+    ImGui::End();
 }
