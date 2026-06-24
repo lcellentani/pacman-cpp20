@@ -53,6 +53,7 @@ void DebugView::draw_tweaks_section(GameConfig& config) {
         return;
 
     ImGui::SliderFloat("Pac-Man speed", &config.pacman_speed, 50.0f, 400.0f);
+    ImGui::SliderFloat("Ghost speed", &config.ghost_speed, 50.0f, 400.0f);
 
     ImGui::Spacing();
     ImGui::TextDisabled("Ghost house (applies on next restart)");

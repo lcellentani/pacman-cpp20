@@ -22,6 +22,7 @@ GameConfig load_config(const char* path) {
 
     GameConfig cfg;
     cfg.pacman_speed = j.value("pacman_speed", cfg.pacman_speed);
+    cfg.ghost_speed = j.value("ghost_speed", cfg.ghost_speed);
     cfg.ghost_house_dots_pinky = j.value("ghost_house_dots_pinky", cfg.ghost_house_dots_pinky);
     cfg.ghost_house_dots_inky = j.value("ghost_house_dots_inky", cfg.ghost_house_dots_inky);
     cfg.ghost_house_dots_clyde = j.value("ghost_house_dots_clyde", cfg.ghost_house_dots_clyde);
@@ -33,6 +34,7 @@ GameConfig load_config(const char* path) {
 void save_config(const GameConfig& cfg, const char* path) {
     nlohmann::json j;
     j["pacman_speed"] = cfg.pacman_speed;
+    j["ghost_speed"] = cfg.ghost_speed;
     j["ghost_house_dots_pinky"] = cfg.ghost_house_dots_pinky;
     j["ghost_house_dots_inky"] = cfg.ghost_house_dots_inky;
     j["ghost_house_dots_clyde"] = cfg.ghost_house_dots_clyde;

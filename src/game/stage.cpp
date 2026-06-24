@@ -47,9 +47,14 @@ void Stage::update(const InputState& input, float dt) {
 		console_.toggle();
 	prev_console_key_ = input.console_toggle;
 
+	pacman_.set_speed(config_.pacman_speed);
+	blinky_.set_speed(config_.ghost_speed);
+	pinky_.set_speed(config_.ghost_speed);
+	inky_.set_speed(config_.ghost_speed);
+	clyde_.set_speed(config_.ghost_speed);
+
 	pacman_.handle_input(input);
 
-	pacman_.set_speed(config_.pacman_speed);
 	pacman_.update(dt);
 
 	scheduler_.update(dt);

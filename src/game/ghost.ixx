@@ -23,6 +23,8 @@ public:
     [[nodiscard]] Color get_color() const;
     [[nodiscard]] AABB get_bounds() const;
 
+    void set_speed(float s) { speed_ = s; }
+
      [[nodiscard]] GhostDebugState debug_state() const;
 
 private:
