@@ -38,7 +38,7 @@ std::string_view trim(std::string_view s) {
 
 } // namespace
 
-void ConsoleView::draw() {
+void ConsoleView::draw(const GameState& game_state) {
     if (!visible_) return;
 
     ImGui::SetNextWindowPos({ (float)LAYOUT_CONSOLE_X, (float)LAYOUT_CONSOLE_Y }, ImGuiCond_Once);
@@ -100,7 +100,7 @@ void ConsoleView::draw() {
         std::string_view cmd = trim(input_);
         if (!cmd.empty()) {
             log_info(std::string{ "> " } + std::string{ cmd });
-            dispatch_command(cmd);
+            dispatch_command(cmd, game_state);
             scroll_to_bottom_ = true;
         }
         input_[0] = '\0';
@@ -110,7 +110,7 @@ void ConsoleView::draw() {
     ImGui::End();
 }
 
-void ConsoleView::dispatch_command(std::string_view cmd) {
+void ConsoleView::dispatch_command(std::string_view cmd, const GameState& game_state) {
     cmd = trim(cmd);
     // First whitespace-delimited token
     auto sp = cmd.find_first_of(" \t");
@@ -118,6 +118,22 @@ void ConsoleView::dispatch_command(std::string_view cmd) {
 
     if (head == "clear") {
         Log::instance().clear();
+        return;
+    }
+    if (head == "dots_eaten") {
+        log_info("dots_eaten = " + std::to_string(game_state.dots_eaten));
+        return;
+    }
+    if (head == "dot_timer") {
+        log_info("dot_timer = " + std::to_string(game_state.dot_timer));
+        return;
+    }
+    if (head == "next_force_release") {
+        if (game_state.next_force_release.has_value()) {
+            log_info("next_force_release = " + std::to_string(static_cast<int>(game_state.next_force_release.value())));
+        } else {
+            log_info("next_force_release = <none>");
+        }
         return;
     }
     log_warn(std::string{ "unknown command: " } + std::string{ head });

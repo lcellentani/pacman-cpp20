@@ -101,7 +101,7 @@ void Stage::render(Renderer& renderer) {
 
 	std::array<GhostDebugState, 4> ghosts{ blinky_.debug_state(), pinky_.debug_state(), inky_.debug_state(), clyde_.debug_state() };
 	debug_.draw(map_, pacman_.debug_state(), ghosts, config_);
-	console_.draw();
+	console_.draw(game_state_);
 
 	renderer.imgui_render();
 	renderer.present();
